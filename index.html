@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0F2C6B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Molduras">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
+<title>Molduras Laqueado — Mobili</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+:root {
+  --navy-50:  #EDF1FA;
+  --navy-100: #D2DDF3;
+  --navy-200: #A7BDEB;
+  --navy-300: #7395DD;
+  --navy-400: #4A73CE;
+  --navy-500: #2E56B0;
+  --navy-600: #1A3781;
+  --navy-700: #142E6A;
+  --navy-800: #0F2C6B;
+  --navy-900: #0A1B4A;
+  --navy-950: #061236;
+  --gray-50:  #F5F7FB;
+  --gray-100: #EEF0F4;
+  --gray-200: #DDE0E6;
+  --gray-400: #8B93A5;
+  --gray-600: #4A5568;
+  --gray-800: #1A202C;
+  --gray-900: #0D1017;
+  --bg: #F5F7FB;
+  --surface: #FFFFFF;
+  --text: var(--navy-900);
+  --text-muted: var(--gray-600);
+  --text-hint: var(--gray-400);
+  --border: var(--gray-200);
+  --primary: var(--navy-800);
+  --primary-hover: var(--navy-900);
+  --accent-bg: var(--navy-50);
+  --accent-text: var(--navy-800);
+  --heading: var(--navy-600);
+  --danger-bg: #FCEBEB;
+  --danger-text: #791F1F;
+  --success-bg: #E6F4EA;
+  --success-text: #1E6B3A;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-lg: 14px;
+  --shadow-card: 0 1px 2px rgba(15, 44, 107, 0.06), 0 0 0 0.5px var(--border);
+  --shadow-lg: 0 4px 12px rgba(15, 44, 107, 0.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: var(--navy-950);
+    --surface: #0D1F49;
+    --text: #EDF1FA;
+    --text-muted: #A7BDEB;
+    --text-hint: #7395DD;
+    --border: #1A3781;
+    --accent-bg: #142E6A;
+    --accent-text: #D2DDF3;
+    --heading: var(--navy-200);
+    --danger-bg: #401414;
+    --danger-text: #F7C1C1;
+    --success-bg: #0F3D20;
+    --success-text: #A3DAB4;
+    --shadow-card: 0 1px 2px rgba(0,0,0,0.4), 0 0 0 0.5px var(--border);
+  }
+}
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Poppins', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+.app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: max(env(safe-area-inset-top), 16px) 16px max(env(safe-area-inset-bottom), 24px);
+}
+header {
+  background: var(--navy-800);
+  color: white;
+  padding: 28px 20px 22px;
+  margin: calc(-1 * max(env(safe-area-inset-top), 16px)) -16px 20px;
+  padding-top: calc(28px + max(env(safe-area-inset-top), 0px));
+  border-radius: 0 0 18px 18px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(15, 44, 107, 0.15);
+}
+header .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  justify-content: center;
+}
+header .brand-icon { width: 36px; height: 36px; flex-shrink: 0; }
+header h1 {
+  margin: 0;
+  font-family: 'Poppins', system-ui, sans-serif;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: white;
+  line-height: 1;
+}
+header .app-title {
+  margin: 10px 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+header .sub {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 400;
+}
+
+/* Selector de modelos */
+.model-selector {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.model-card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 16px;
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+  border: 2px solid transparent;
+  -webkit-tap-highlight-color: transparent;
+  /* anula el estilo general de button (alto fijo de 46px) */
+  height: auto;
+  min-width: 0;
+  justify-content: flex-start;
+  font-size: inherit;
+}
+.model-card:active { transform: scale(0.98); }
+.model-card.active {
+  border-color: var(--navy-800);
+  background: var(--accent-bg);
+}
+.model-card .model-icon {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  background: var(--accent-bg);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-text);
+}
+.model-card.active .model-icon {
+  background: var(--navy-800);
+  color: white;
+}
+.model-card .model-info { flex: 1; min-width: 0; }
+.model-card .model-name {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text);
+  margin: 0 0 2px;
+  letter-spacing: -0.01em;
+}
+.model-card .model-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.35;
+}
+.model-card .model-badge {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+.model-card.active .model-badge { color: var(--heading); }
+
+.card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.card h2 {
+  margin: 0 0 12px;
+  font-family: 'Poppins', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--heading);
+}
+.inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.inputs.three-col { grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+.refilado-row {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.refilado-label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.refilado-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.refilado-chip {
+  flex: 1;
+  min-width: 90px;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.12s;
+  height: auto;
+}
+.refilado-chip.active {
+  background: var(--navy-800);
+  color: white;
+  border-color: var(--navy-800);
+}
+.refilado-chip:hover { border-color: var(--navy-400); }
+.refilado-chip.active:hover { background: var(--navy-900); }
+.refilado-custom-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  font-size: 15px;
+  font-family: inherit;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  margin-top: 8px;
+  -moz-appearance: textfield;
+}
+.refilado-custom-input::-webkit-outer-spin-button,
+.refilado-custom-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.refilado-custom-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field.full { grid-column: 1 / -1; }
+.field label { font-size: 13px; color: var(--text-muted); }
+.field input[type="number"],
+.field input[type="text"] {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  font-size: 17px;
+  font-family: inherit;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color 0.12s, box-shadow 0.12s;
+  font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield;
+}
+.field input[type="number"]::-webkit-outer-spin-button,
+.field input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.field input[type="number"]:focus,
+.field input[type="text"]:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+.summary { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.summary.three { grid-template-columns: 1fr 1fr 1fr; }
+.summary .stat {
+  background: var(--accent-bg);
+  color: var(--accent-text);
+  padding: 12px 14px;
+  border-radius: var(--radius);
+}
+.summary .stat .label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.85;
+  font-weight: 600;
+}
+.summary .stat .value {
+  font-family: 'Poppins', system-ui, sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  margin-top: 3px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.error {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  margin-bottom: 14px;
+}
+.error[hidden] { display: none; }
+
+.meta-context {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.meta-context:empty { display: none; padding: 0; margin: 0; border: none; }
+.meta-context .label { color: var(--text-hint); margin-right: 4px; }
+.meta-context strong { color: var(--text); font-weight: 600; }
+
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+thead th {
+  font-weight: 500;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+thead th.num { text-align: right; }
+tbody td { padding: 10px 8px; border-bottom: 1px solid var(--border); color: var(--text); }
+tbody td.num { text-align: right; font-variant-numeric: tabular-nums; }
+tbody tr.group-head td {
+  background: var(--accent-bg);
+  color: var(--accent-text);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 10px;
+  border-bottom: none;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+tbody tr:last-child td { border-bottom: none; }
+td.num, th.num { white-space: nowrap; }
+
+/* Celular: que entren las 5 columnas sin deslizar la tabla */
+@media (max-width: 480px) {
+  .card { padding: 14px 12px; }
+  table { font-size: 13px; }
+  thead th { font-size: 10px; letter-spacing: 0.02em; padding: 6px 4px; }
+  tbody td { padding: 9px 4px; }
+  tbody tr.group-head td { font-size: 11px; padding: 7px 6px; }
+}
+
+.actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+button {
+  flex: 1;
+  min-width: 100px;
+  height: 46px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, transform 0.08s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  -webkit-tap-highlight-color: transparent;
+}
+button:hover { background: var(--gray-50); border-color: var(--gray-400); }
+@media (prefers-color-scheme: dark) {
+  button:hover { background: var(--gray-800); }
+}
+button:active { transform: scale(0.98); }
+button.primary {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+button.primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+
+.collapsible {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+.collapsible summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 14px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+}
+.collapsible summary::-webkit-details-marker { display: none; }
+.collapsible summary::after {
+  content: "+";
+  font-size: 20px;
+  font-weight: 300;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+  line-height: 1;
+}
+.collapsible[open] summary::after { content: "−"; }
+.collapsible .body {
+  padding: 0 16px 16px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+/* Historial */
+.history-filters {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.filter-chip {
+  flex: 0 0 auto;
+  min-width: 0;
+  height: auto;
+  padding: 6px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.filter-chip.active {
+  background: var(--navy-800);
+  color: white;
+  border-color: var(--navy-800);
+}
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+}
+.history-item:last-child { border-bottom: none; }
+.history-item .info { flex: 1; min-width: 0; }
+.history-item .dims { font-weight: 500; font-variant-numeric: tabular-nums; }
+.history-item .meta {
+  font-size: 12px;
+  color: var(--text-hint);
+  margin-top: 2px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.history-item .model-tag {
+  display: inline-block;
+  padding: 1px 7px;
+  background: var(--accent-bg);
+  color: var(--accent-text);
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.history-item button {
+  flex: 0 0 auto;
+  min-width: auto;
+  height: 36px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+.history-empty {
+  padding: 20px 0;
+  text-align: center;
+  color: var(--text-hint);
+  font-size: 13px;
+}
+.history-actions {
+  padding-top: 12px;
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.history-actions button { width: 100%; }
+
+footer {
+  margin-top: 20px;
+  padding: 16px 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-hint);
+}
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0;
+  margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0;
+}
+.toast {
+  position: fixed;
+  bottom: max(env(safe-area-inset-bottom), 24px);
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--gray-900);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 24px;
+  font-size: 14px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 100;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.hidden { display: none !important; }
+
+@media print {
+  body { background: white; color: black; }
+  .app { max-width: 100%; padding: 0; }
+  header {
+    background: white !important;
+    color: black !important;
+    border-bottom: 3px solid #0F2C6B;
+    border-radius: 0;
+    margin: 0 0 16px;
+    padding: 12px 0;
+    box-shadow: none;
+    text-align: left;
+  }
+  header .brand { justify-content: flex-start; }
+  header h1 { color: #0F2C6B !important; font-size: 26px; }
+  header .app-title { color: #4A5568 !important; }
+  header .sub { color: #8B93A5 !important; }
+  .actions, .collapsible, footer, .toast, .model-selector { display: none !important; }
+  .card { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; }
+  .summary .stat { background: #EDF1FA; color: #0F2C6B; border: 1px solid #ccc; }
+  tbody tr.group-head td { background: #EDF1FA; color: #0F2C6B; }
+}
+</style>
+</head>
+<body>
+<main class="app">
+<header>
+  <div class="brand">
+    <svg class="brand-icon" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="6" y="6" width="28" height="28" rx="1" fill="none" stroke="currentColor" stroke-width="6.5"/>
+    </svg>
+    <h1>MOBILI</h1>
+  </div>
+  <p class="app-title">Molduras Laqueado</p>
+  <p class="sub">Calculador de los 3 modelos</p>
+</header>
+
+<!-- SELECTOR DE MODELO -->
+<section aria-labelledby="selector-h">
+  <h2 id="selector-h" class="sr-only">Seleccionar modelo</h2>
+  <div class="model-selector" id="model-selector">
+    <button class="model-card active" data-model="step" type="button">
+      <div class="model-icon">
+        <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="3" y="21" width="26" height="6" rx="1" fill="currentColor" opacity="0.3"/>
+          <rect x="6" y="15" width="20" height="6" rx="1" fill="currentColor" opacity="0.55"/>
+          <rect x="9" y="9" width="14" height="6" rx="1" fill="currentColor"/>
+        </svg>
+      </div>
+      <div class="model-info">
+        <div class="model-badge">Modelo 1</div>
+        <p class="model-name">Step (Escalonada)</p>
+        <p class="model-desc">Base 12 mm + 2 fajas 3 mm (6,3 + 6 cm)</p>
+      </div>
+    </button>
+
+    <button class="model-card" data-model="media-cana" type="button">
+      <div class="model-icon">
+        <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="3" y="4" width="26" height="24" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/>
+          <rect x="8" y="9" width="16" height="14" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10 11 Q11 13 10 15 M22 11 Q21 13 22 15" stroke="currentColor" stroke-width="1" fill="none"/>
+        </svg>
+      </div>
+      <div class="model-info">
+        <div class="model-badge">Modelo 2</div>
+        <p class="model-name">Media caña (Fresada)</p>
+        <p class="model-desc">3 placas (9+9+18 mm) · surco perimetral</p>
+      </div>
+    </button>
+
+    <button class="model-card" data-model="simple-placar" type="button">
+      <div class="model-icon">
+        <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="3" y="4" width="26" height="24" rx="1" fill="currentColor" opacity="0.3"/>
+          <rect x="7" y="8" width="18" height="16" rx="0.5" fill="var(--surface, white)" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
+      </div>
+      <div class="model-info">
+        <div class="model-badge">Modelo 3</div>
+        <p class="model-name">Simple de Placar</p>
+        <p class="model-desc">Base 12 mm + 1 faja 5 mm (8 cm)</p>
+      </div>
+    </button>
+  </div>
+</section>
+
+<!-- CLIENTE Y ORDEN -->
+<section class="card" aria-labelledby="cliente-h">
+  <h2 id="cliente-h">Cliente y orden</h2>
+  <div class="inputs">
+    <div class="field full">
+      <label for="cliente">Cliente</label>
+      <input type="text" id="cliente" placeholder="Opcional" autocomplete="off">
+    </div>
+    <div class="field full">
+      <label for="orden">N° de orden</label>
+      <input type="text" id="orden" placeholder="Opcional" autocomplete="off">
+    </div>
+  </div>
+</section>
+
+<!-- MEDIDAS DEL FRENTE -->
+<section class="card" aria-labelledby="entrada-h">
+  <h2 id="entrada-h">Medida final del frente</h2>
+  <div class="inputs three-col">
+    <div class="field">
+      <label for="alto">Alto (cm)</label>
+      <input type="number" id="alto" value="98" min="0" step="0.1" inputmode="decimal" enterkeyhint="next">
+    </div>
+    <div class="field">
+      <label for="ancho">Ancho (cm)</label>
+      <input type="number" id="ancho" value="68" min="0" step="0.1" inputmode="decimal" enterkeyhint="next">
+    </div>
+    <div class="field">
+      <label for="cantidad">Cantidad</label>
+      <input type="number" id="cantidad" value="1" min="1" step="1" inputmode="numeric" enterkeyhint="done">
+    </div>
+  </div>
+  <div class="refilado-row">
+    <label class="refilado-label">Refilado para este frente:</label>
+    <div class="refilado-chips" id="refilado-chips-frente">
+      <button type="button" class="refilado-chip active" data-value="1">1 cm/lado</button>
+      <button type="button" class="refilado-chip" data-value="0.5">0,5 cm/lado</button>
+      <button type="button" class="refilado-chip" data-value="custom">Otro</button>
+    </div>
+    <input type="number" id="refilado-frente-custom" class="refilado-custom-input" value="1" min="0.1" step="0.1" inputmode="decimal" hidden>
+  </div>
+</section>
+
+<div id="error" class="error" hidden></div>
+
+<div id="summary" class="summary"></div>
+
+<!-- DESPIECE -->
+<section class="card" aria-labelledby="despiece-h">
+  <h2 id="despiece-h">Despiece</h2>
+  <div id="meta-context" class="meta-context"></div>
+  <div class="table-wrap">
+    <table>
+      <thead id="thead"></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+  <div class="actions">
+    <button id="btn-copy">Copiar</button>
+    <button id="btn-share">Compartir</button>
+    <button id="btn-print">Imprimir</button>
+    <button id="btn-save" class="primary">Guardar</button>
+  </div>
+</section>
+
+<!-- HISTORIAL -->
+<details class="collapsible">
+  <summary>Historial</summary>
+  <div class="body">
+    <div class="history-filters" id="history-filters">
+      <button class="filter-chip active" data-filter="all" type="button">Todos</button>
+      <button class="filter-chip" data-filter="step" type="button">Step</button>
+      <button class="filter-chip" data-filter="media-cana" type="button">Media caña</button>
+      <button class="filter-chip" data-filter="simple-placar" type="button">Placar</button>
+    </div>
+    <div id="history-body">
+      <div class="history-empty">Aún no guardaste ningún frente.</div>
+    </div>
+    <div class="history-actions" id="history-actions" hidden>
+      <button id="btn-print-batch" class="primary">Imprimir orden de corte</button>
+      <button id="btn-print-batch-measure">Imprimir corte por medida</button>
+      <button id="btn-clear-history">Vaciar historial</button>
+    </div>
+  </div>
+</details>
+
+<!-- CONFIGURACION AVANZADA -->
+<details class="collapsible">
+  <summary>Configuración avanzada</summary>
+  <div class="body">
+    <div class="inputs">
+      <div class="field full">
+        <label for="refilado">Refilado por defecto (cm/lado)</label>
+        <input type="number" id="refilado" value="1" min="0" step="0.1" inputmode="decimal">
+        <small style="font-size:11px; color:var(--text-hint); margin-top:4px;">
+          Aplica a frentes nuevos. Podés pisarlo por frente arriba.
+        </small>
+      </div>
+      <!-- Config Step -->
+      <div class="field cfg-step">
+        <label for="faja2">Ancho faja C2 final (cm)</label>
+        <input type="number" id="faja2" value="6.3" min="0.1" step="0.1" inputmode="decimal">
+      </div>
+      <div class="field cfg-step">
+        <label for="faja3">Ancho faja C3 final (cm)</label>
+        <input type="number" id="faja3" value="6" min="0.1" step="0.1" inputmode="decimal">
+      </div>
+      <!-- Config Media caña -->
+      <div class="field cfg-mc">
+        <label for="marco-mc">Marco perimetral (cm)</label>
+        <input type="number" id="marco-mc" value="5.5" min="0.1" step="0.1" inputmode="decimal">
+      </div>
+      <div class="field cfg-mc">
+        <label for="surco-mc">Surco media caña (cm)</label>
+        <input type="number" id="surco-mc" value="3.5" min="0.1" step="0.1" inputmode="decimal">
+      </div>
+      <!-- Config Simple placar -->
+      <div class="field cfg-sp full">
+        <label for="faja-sp">Ancho faja final (cm)</label>
+        <input type="number" id="faja-sp" value="8" min="0.1" step="0.1" inputmode="decimal">
+      </div>
+      <div class="field full">
+        <button id="btn-reset" style="margin-top: 6px;">Restaurar valores por defecto</button>
+      </div>
+    </div>
+  </div>
+</details>
+
+<footer>
+  Mobili · Molduras Laqueado · v1.0
+</footer>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
