@@ -22,27 +22,22 @@ molduras-laqueado-mobili/
 ├── icon-512.png            # 512x512
 ├── icon-maskable-512.png   # 512x512 maskable
 ├── favicon.png             # 48x48
-├── _headers                # Headers Netlify (seguridad + cache)
-├── netlify.toml            # Config Netlify
+├── .nojekyll               # GitHub Pages sirve los archivos tal cual (sin Jekyll)
 ├── .gitignore
 └── README.md
 ```
 
-## Deploy
+## Deploy — GitHub Pages
 
-### Opción A — Netlify conectado a GitHub (recomendado)
+La app se publica directo desde este repo con GitHub Pages (sin Netlify ni build).
 
-1. En Netlify: **Add new site** → **Import from Git** → GitHub → seleccionar este repo
-2. Branch: `main` · Build command: (vacío) · Publish directory: `.`
-3. Deploy
-4. Cada `git push` a `main` dispara un deploy automático (sin consumir créditos manuales)
+1. En GitHub: **Settings** → **Pages**
+2. Source: **Deploy from a branch** · Branch: `main` · Carpeta: `/ (root)` → **Save**
+3. A los 1–2 minutos queda online en `https://<usuario>.github.io/molduras-laqueado-mobili/`
+4. Cada `git push` a `main` vuelve a publicar solo
 
-### Opción B — Drag-and-drop manual
-Arrastrar la carpeta completa al drop zone de Netlify.
-
-## URL sugerida
-
-`molduras-mobili.netlify.app` (Site settings → Change site name)
+Todas las rutas son relativas (`./`), así que la app funciona dentro de la subcarpeta del repo.
+Al abrirla después de un push, un refresco alcanza para ver la versión nueva (el service worker va a la red primero).
 
 ## Uso
 
