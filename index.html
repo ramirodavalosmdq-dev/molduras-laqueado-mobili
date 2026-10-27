@@ -387,6 +387,7 @@ td.num, th.num { white-space: nowrap; }
 }
 
 .actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.btn-save-top { display: block; width: 100%; height: 52px; margin-top: 14px; font-size: 1rem; }
 button {
   flex: 1;
   min-width: 100px;
@@ -583,7 +584,7 @@ footer {
   header h1 { color: #0F2C6B !important; font-size: 26px; }
   header .app-title { color: #4A5568 !important; }
   header .sub { color: #8B93A5 !important; }
-  .actions, .collapsible, footer, .toast, .model-selector { display: none !important; }
+  .actions, .btn-save-top, .collapsible, footer, .toast, .model-selector { display: none !important; }
   .card { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; }
   .summary .stat { background: #EDF1FA; color: #0F2C6B; border: 1px solid #ccc; }
   tbody tr.group-head td { background: #EDF1FA; color: #0F2C6B; }
@@ -685,6 +686,7 @@ footer {
       <input type="number" id="cantidad" value="1" min="1" step="1" inputmode="numeric" enterkeyhint="done">
     </div>
   </div>
+  <button id="btn-save" class="primary btn-save-top">Guardar</button>
   <div class="refilado-row">
     <label class="refilado-label">Refilado para este frente:</label>
     <div class="refilado-chips" id="refilado-chips-frente">
@@ -714,7 +716,6 @@ footer {
     <button id="btn-copy">Copiar</button>
     <button id="btn-share">Compartir</button>
     <button id="btn-print">Imprimir</button>
-    <button id="btn-save" class="primary">Guardar</button>
   </div>
 </section>
 
