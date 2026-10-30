@@ -7,109 +7,126 @@
  "refilado": 1,
  "marco": 5.5,
  "surco": 3.5,
- "nota": "Frentes N° 1 a 19 del plano (medidas finales, alto × ancho en cm). N° 15 (micro) y N° 16 (horno) sin medida en el plano.",
+ "nota": "Frentes N° 1 a 19 del plano (medidas finales, alto × ancho en cm). N° 15 (micro) y N° 16 (horno) sin medida en el plano. 'plano' = medida tal como figura en el plano (ancho × alto, mm).",
  "frentes": [
   {
    "nro": 1,
    "alto": 18.1,
    "ancho": 104.6,
-   "cant": 2
+   "cant": 2,
+   "plano": "1046 × 181"
   },
   {
    "nro": 2,
    "alto": 36.6,
    "ancho": 104.6,
-   "cant": 1
+   "cant": 1,
+   "plano": "1046 × 366"
   },
   {
    "nro": 3,
    "alto": 74.0,
    "ancho": 19.6,
-   "cant": 1
+   "cant": 1,
+   "plano": "196 × 740"
   },
   {
    "nro": 4,
    "alto": 74.0,
    "ancho": 39.6,
-   "cant": 1
+   "cant": 1,
+   "plano": "396 × 740"
   },
   {
    "nro": 5,
    "alto": 74.0,
    "ancho": 39.6,
-   "cant": 1
+   "cant": 1,
+   "plano": "396 × 740"
   },
   {
    "nro": 6,
    "alto": 74.0,
    "ancho": 54.6,
-   "cant": 1
+   "cant": 1,
+   "plano": "546 × 740"
   },
   {
    "nro": 7,
    "alto": 36.6,
    "ancho": 109.6,
-   "cant": 2
+   "cant": 2,
+   "plano": "1096 × 366"
   },
   {
    "nro": 8,
    "alto": 74.0,
    "ancho": 37.8,
-   "cant": 1
+   "cant": 1,
+   "plano": "378 × 740"
   },
   {
    "nro": 9,
    "alto": 74.0,
    "ancho": 61.6,
-   "cant": 1
+   "cant": 1,
+   "plano": "616 × 740"
   },
   {
    "nro": 10,
    "alto": 101.0,
    "ancho": 50.9,
-   "cant": 4
+   "cant": 4,
+   "plano": "509 × 1010"
   },
   {
    "nro": 11,
    "alto": 101.0,
    "ancho": 61.4,
-   "cant": 1
+   "cant": 1,
+   "plano": "614 × 1010"
   },
   {
    "nro": 12,
    "alto": 39.6,
    "ancho": 102.2,
-   "cant": 1
+   "cant": 1,
+   "plano": "1022 × 396"
   },
   {
    "nro": 13,
    "alto": 39.6,
    "ancho": 62.1,
-   "cant": 2
+   "cant": 2,
+   "plano": "621 × 396"
   },
   {
    "nro": 14,
    "alto": 39.6,
    "ancho": 102.3,
-   "cant": 1
+   "cant": 1,
+   "plano": "1023 × 396"
   },
   {
    "nro": 17,
    "alto": 29.6,
    "ancho": 62.1,
-   "cant": 2
+   "cant": 2,
+   "plano": "621 × 296"
   },
   {
    "nro": 18,
    "alto": 17.6,
    "ancho": 102.3,
-   "cant": 2
+   "cant": 2,
+   "plano": "1023 × 176"
   },
   {
    "nro": 19,
    "alto": 35.6,
    "ancho": 102.3,
-   "cant": 1
+   "cant": 1,
+   "plano": "1023 × 356"
   }
  ]
 }

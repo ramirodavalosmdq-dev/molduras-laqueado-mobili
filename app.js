@@ -47,6 +47,7 @@
 
   let currentModel = 'step';
   let currentResult = null;
+  let loadedRef = null; // { nro, plano } del frente cargado desde el historial
   let historyFilter = 'all';
   let toastTimer = null;
 
@@ -157,6 +158,7 @@
         <div class="history-item">
           <div class="info">
             <div class="dims">${item.nro != null ? '<span class="nro">N° ' + escapeHtml(String(item.nro)) + '</span> ' : ''}${dimsStr}</div>
+            ${item.plano ? `<div class="plano-ref">Plano: ${escapeHtml(item.plano)}</div>` : ''}
             <div class="meta">
               <span class="model-tag">${escapeHtml(modelLabel)}</span>
               <span>${whenStr}${clienteStr}</span>
@@ -176,6 +178,7 @@
     const parts = [];
     if (cliente) parts.push(`<span><span class="label">Cliente:</span><strong>${escapeHtml(cliente)}</strong></span>`);
     if (orden) parts.push(`<span><span class="label">Orden N°:</span><strong>${escapeHtml(orden)}</strong></span>`);
+    if (loadedRef && loadedRef.nro != null) parts.unshift(`<span class="nro-chip">N° ${escapeHtml(String(loadedRef.nro))}${loadedRef.plano ? ' · plano ' + escapeHtml(loadedRef.plano) : ''}</span>`);
     $metaContext.innerHTML = parts.join('');
   }
 
@@ -458,6 +461,7 @@
     if (orden) lines.push(`ORDEN N°: ${orden}`);
     if (cliente || orden) lines.push('');
 
+    if (loadedRef && loadedRef.nro != null) lines.push(`PIEZA N° ${loadedRef.nro}${loadedRef.plano ? ' (plano ' + loadedRef.plano + ')' : ''}`);
     const header = r.cant > 1
       ? `FRENTE ${fmt(r.H)} × ${fmt(r.A)} cm (final) — ${r.cant} PIEZAS`
       : `FRENTE ${fmt(r.H)} × ${fmt(r.A)} cm (final)`;
@@ -585,7 +589,7 @@
       const altoBruto = item.H - 2 * CANTO + 2 * r;
       const anchoBruto = item.A - 2 * CANTO + 2 * r;
       return { ...item, ref: item.nro != null ? item.nro : i + 1, r, cant, altoBruto, anchoBruto };
-    });
+    }).sort((a, b) => (a.nro != null && b.nro != null) ? a.nro - b.nro : 0);
 
     const metaLine = [];
     if (cliente) metaLine.push(`<div><strong>Cliente:</strong> ${esc(cliente)}</div>`);
@@ -595,8 +599,8 @@
     // Indice (muestra MEDIDA FINAL del plano)
     const indiceItems = items.map(f => `
       <div class="indice-item">
-        <span class="ref">#${f.ref}</span>
-        <span class="medida">${fmt(f.H)} × ${fmt(f.A)}</span>
+        <span class="ref">N° ${f.ref}</span>
+        <span class="medida">${fmt(f.H)} × ${fmt(f.A)}${f.plano ? '<small> · plano ' + esc(f.plano) + '</small>' : ''}</span>
         <span class="cant">×${f.cant}</span>
       </div>
     `).join('');
@@ -633,7 +637,7 @@
 
     const fila3col = (f) => `
       <tr>
-        <td class="ref-cell">#${f.ref}</td>
+        <td class="ref-cell">N° ${f.ref}</td>
         <td class="num">${f.cant}</td>
         <td class="num">${fmt(f.alto)} × ${fmt(f.ancho)}</td>
       </tr>
@@ -643,7 +647,7 @@
       <div class="table-block">
         <div class="section-title"><span>${title}</span><span class="meta-info">${meta}</span></div>
         <table>
-          <thead><tr><th>Ref</th><th class="num">Cant</th><th class="num">Alto × Ancho (cm)</th></tr></thead>
+          <thead><tr><th>N°</th><th class="num">Cant</th><th class="num">Alto × Ancho (cm)</th></tr></thead>
           <tbody>${rows.map(fila3col).join('')}</tbody>
         </table>
       </div>
@@ -702,11 +706,11 @@
   <div class="section-title"><span>Índice de frentes</span><span class="meta-info">${plural(items.length, 'frente', 'frentes')} · ${plural(totalPiezas, 'pieza', 'piezas')} totales</span></div>
   <div class="indice">${indiceItems}</div>
   ${bases12.length ? `<div class="table-block full-width"><div class="section-title"><span>Base — MDF 12 mm</span><span class="meta-info">${plural(totalBases12, 'pieza', 'piezas')}</span></div>
-    <table><thead><tr><th>Ref</th><th class="num">Cant</th><th class="num">Alto × Ancho (cm)</th></tr></thead><tbody>${bases12.map(fila3col).join('')}</tbody></table></div>` : ''}
+    <table><thead><tr><th>N°</th><th class="num">Cant</th><th class="num">Alto × Ancho (cm)</th></tr></thead><tbody>${bases12.map(fila3col).join('')}</tbody></table></div>` : ''}
   ${bases18.length ? `<div class="table-block full-width"><div class="section-title"><span>Base — MDF 18 mm (media caña)</span><span class="meta-info">${plural(totalBases18, 'pieza', 'piezas')}</span></div>
-    <table><thead><tr><th>Ref</th><th class="num">Cant</th><th class="num">Alto × Ancho (cm)</th></tr></thead><tbody>${bases18.map(fila3col).join('')}</tbody></table></div>` : ''}
+    <table><thead><tr><th>N°</th><th class="num">Cant</th><th class="num">Alto × Ancho (cm)</th></tr></thead><tbody>${bases18.map(fila3col).join('')}</tbody></table></div>` : ''}
   ${caras9.length ? `<div class="table-block full-width"><div class="section-title"><span>Caras — MDF 9 mm (media caña)</span><span class="meta-info">${plural(totalCaras9, 'pieza', 'piezas')}</span></div>
-    <table><thead><tr><th>Ref</th><th class="num">Cant</th><th class="num">Alto × Ancho (cm)</th></tr></thead><tbody>${caras9.map(fila3col).join('')}</tbody></table></div>` : ''}
+    <table><thead><tr><th>N°</th><th class="num">Cant</th><th class="num">Alto × Ancho (cm)</th></tr></thead><tbody>${caras9.map(fila3col).join('')}</tbody></table></div>` : ''}
   <div class="tables-grid">
     ${section('Capa 2 — verticales (3mm)', 'step', c2v)}
     ${section('Capa 2 — horizontales (3mm)', 'step', c2h)}
@@ -739,7 +743,7 @@
       const altoBruto = item.H - 2 * CANTO + 2 * r;
       const anchoBruto = item.A - 2 * CANTO + 2 * r;
       return { ...item, ref: item.nro != null ? item.nro : i + 1, r, cant, altoBruto, anchoBruto };
-    });
+    }).sort((a, b) => (a.nro != null && b.nro != null) ? a.nro - b.nro : 0);
 
     const bases12 = [], bases18 = [], caras9 = [];
     const tirasPorAncho = new Map(); // ancho de corte → { ancho, anchoFinal, espesor, tiras }
@@ -783,24 +787,24 @@
 
     const indiceItems = items.map(f => `
       <div class="indice-item">
-        <span class="ref">#${f.ref}</span>
-        <span class="medida">${fmt(f.H)} × ${fmt(f.A)}</span>
+        <span class="ref">N° ${f.ref}</span>
+        <span class="medida">${fmt(f.H)} × ${fmt(f.A)}${f.plano ? '<small> · plano ' + esc(f.plano) + '</small>' : ''}</span>
         <span class="cant">×${f.cant}</span>
       </div>
     `).join('');
 
-    const fila3col = (b) => `<tr><td class="ref-cell">#${b.ref}</td><td class="num">${b.cant}</td><td class="num">${fmt(b.alto)} × ${fmt(b.ancho)}</td></tr>`;
-    const filaTira = (t) => `<tr><td class="ref-cell">#${t.ref}</td><td class="num">${t.cant}</td><td class="num">${fmt(t.largo)}</td></tr>`;
+    const fila3col = (b) => `<tr><td class="ref-cell">N° ${b.ref}</td><td class="num">${b.cant}</td><td class="num">${fmt(b.alto)} × ${fmt(b.ancho)}</td></tr>`;
+    const filaTira = (t) => `<tr><td class="ref-cell">N° ${t.ref}</td><td class="num">${t.cant}</td><td class="num">${fmt(t.largo)}</td></tr>`;
 
     const bloqueBases = (titulo, meta, arr) => arr.length === 0 ? '' : `
       <div class="table-block"><div class="section-title"><span>${titulo}</span><span class="meta-info">${meta}</span></div>
-      <table><thead><tr><th>Ref</th><th class="num">Cant</th><th class="num">Alto × Ancho (cm)</th></tr></thead><tbody>${arr.map(fila3col).join('')}</tbody></table></div>`;
+      <table><thead><tr><th>N°</th><th class="num">Cant</th><th class="num">Alto × Ancho (cm)</th></tr></thead><tbody>${arr.map(fila3col).join('')}</tbody></table></div>`;
 
     const bloquesTiras = grupos.map(g => {
       const total = g.tiras.reduce((s, t) => s + t.cant, 0);
       return `<div class="table-block">
         <div class="section-title"><span>Tiras ${g.espesor} × ${fmt(g.ancho)} cm (final ${fmt(g.anchoFinal)} cm)</span><span class="meta-info">${plural(total, 'pieza', 'piezas')}</span></div>
-        <table><thead><tr><th>Ref</th><th class="num">Cant</th><th class="num">Largo (cm)</th></tr></thead><tbody>${g.tiras.map(filaTira).join('')}</tbody></table>
+        <table><thead><tr><th>N°</th><th class="num">Cant</th><th class="num">Largo (cm)</th></tr></thead><tbody>${g.tiras.map(filaTira).join('')}</tbody></table>
       </div>`;
     }).join('');
 
@@ -902,6 +906,7 @@
       if (el === $refilado) {
         setRefiladoFrente(parseFloat($refilado.value));
       }
+      if ((el === $alto || el === $ancho) && loadedRef) loadedRef = null;
       compute();
       saveConfig();
     });
@@ -970,10 +975,19 @@
       t: Date.now(),
     };
     // Guardar params específicos del modelo
+    if (loadedRef && loadedRef.nro != null) { item.nro = loadedRef.nro; if (loadedRef.plano) item.plano = loadedRef.plano; }
     if (r.model === 'step') { item.c2 = r.c2; item.c3 = r.c3; }
     else if (r.model === 'media-cana') { item.marco = r.marco; item.surco = r.surco; }
     else if (r.model === 'simple-placar') { item.faja = r.faja; }
 
+    const same = item.nro != null ? list.findIndex(x => x.nro === item.nro) : -1;
+    if (same >= 0) {
+      list[same] = { ...list[same], ...item };
+      saveHistory(list);
+      renderHistory();
+      showToast(`N° ${item.nro} actualizado`);
+      return;
+    }
     list.unshift(item);
     if (list.length > MAX_HISTORY) list.length = MAX_HISTORY;
     saveHistory(list);
@@ -990,6 +1004,7 @@
     if (isNaN(idx) || !list[idx]) return;
     if (btn.dataset.act === 'load') {
       const item = list[idx];
+      loadedRef = item.nro != null ? { nro: item.nro, plano: item.plano || '' } : null;
       setModel(item.model);
       $alto.value = item.H;
       $ancho.value = item.A;
@@ -1006,7 +1021,8 @@
       saveConfig();
       compute();
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      showToast('Frente cargado');
+      updateMeta();
+      showToast(item.nro != null ? `N° ${item.nro} cargado` : 'Frente cargado');
     } else if (btn.dataset.act === 'del') {
       list.splice(idx, 1);
       saveHistory(list);
@@ -1015,7 +1031,7 @@
   });
 
   // ============== MENÚ HAMBURGUESA + BIBLIOTECA DE TRABAJOS ==============
-  const APP_VERSION = 'v1.1';
+  const APP_VERSION = 'v1.2';
   const JOB_KEY = 'mobili-molduras-trabajo-activo-v1';
   const $drawer = $('drawer');
   const $drawerOverlay = $('drawer-overlay');
@@ -1080,12 +1096,14 @@
     const prev = loadHistory();
     if (prev.length && !confirm(`Esto reemplaza el historial actual (${prev.length} frentes) por "${job.nombre}". ¿Seguir?`)) return false;
     const now = Date.now();
-    const list = job.frentes.map((f, i) => ({
-      model: job.modelo, nro: f.nro, H: f.alto, A: f.ancho, cant: f.cant,
+    const frentes = job.frentes.slice().sort((a, b) => a.nro - b.nro);
+    const list = frentes.map((f, i) => ({
+      model: job.modelo, nro: f.nro, plano: f.plano || '', H: f.alto, A: f.ancho, cant: f.cant,
       r: f.r != null ? f.r : (job.refilado != null ? job.refilado : 1),
       marco: job.marco, surco: job.surco, c2: job.c2, c3: job.c3, faja: job.faja,
       cliente: job.cliente || '', orden: job.orden || '', t: now - i,
     }));
+    loadedRef = null;
     saveHistory(list.slice(0, MAX_HISTORY));
     try { localStorage.setItem(JOB_KEY, file); } catch (e) { /* ignore */ }
     $cliente.value = job.cliente || '';
