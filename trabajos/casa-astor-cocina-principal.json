@@ -1,0 +1,115 @@
+{
+ "nombre": "Casa Astor · Cocina principal",
+ "cliente": "Casa Astor - Cocina principal",
+ "orden": "",
+ "direccion": "Pinares de Santa Clara",
+ "modelo": "media-cana",
+ "refilado": 1,
+ "marco": 5.5,
+ "surco": 3.5,
+ "nota": "Frentes N° 1 a 19 del plano (medidas finales, alto × ancho en cm). N° 15 (micro) y N° 16 (horno) sin medida en el plano.",
+ "frentes": [
+  {
+   "nro": 1,
+   "alto": 18.1,
+   "ancho": 104.6,
+   "cant": 2
+  },
+  {
+   "nro": 2,
+   "alto": 36.6,
+   "ancho": 104.6,
+   "cant": 1
+  },
+  {
+   "nro": 3,
+   "alto": 74.0,
+   "ancho": 19.6,
+   "cant": 1
+  },
+  {
+   "nro": 4,
+   "alto": 74.0,
+   "ancho": 39.6,
+   "cant": 1
+  },
+  {
+   "nro": 5,
+   "alto": 74.0,
+   "ancho": 39.6,
+   "cant": 1
+  },
+  {
+   "nro": 6,
+   "alto": 74.0,
+   "ancho": 54.6,
+   "cant": 1
+  },
+  {
+   "nro": 7,
+   "alto": 36.6,
+   "ancho": 109.6,
+   "cant": 2
+  },
+  {
+   "nro": 8,
+   "alto": 74.0,
+   "ancho": 37.8,
+   "cant": 1
+  },
+  {
+   "nro": 9,
+   "alto": 74.0,
+   "ancho": 61.6,
+   "cant": 1
+  },
+  {
+   "nro": 10,
+   "alto": 101.0,
+   "ancho": 50.9,
+   "cant": 4
+  },
+  {
+   "nro": 11,
+   "alto": 101.0,
+   "ancho": 61.4,
+   "cant": 1
+  },
+  {
+   "nro": 12,
+   "alto": 39.6,
+   "ancho": 102.2,
+   "cant": 1
+  },
+  {
+   "nro": 13,
+   "alto": 39.6,
+   "ancho": 62.1,
+   "cant": 2
+  },
+  {
+   "nro": 14,
+   "alto": 39.6,
+   "ancho": 102.3,
+   "cant": 1
+  },
+  {
+   "nro": 17,
+   "alto": 29.6,
+   "ancho": 62.1,
+   "cant": 2
+  },
+  {
+   "nro": 18,
+   "alto": 17.6,
+   "ancho": 102.3,
+   "cant": 2
+  },
+  {
+   "nro": 19,
+   "alto": 35.6,
+   "ancho": 102.3,
+   "cant": 1
+  }
+ ]
+}

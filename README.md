@@ -53,6 +53,11 @@ Al abrirla después de un push, un refresco alcanza para ver la versión nueva (
    - **Cargar** un frente guardado para editar
    - **Imprimir orden de corte** — PDF consolidado agrupado por operación
    - **Imprimir corte por medida** — PDF agrupado por ancho de tira
+   - **Importar trabajo** — carga al historial un trabajo completo desde `trabajos/` (reemplaza el historial actual)
+
+## Trabajos
+
+Cada trabajo es un JSON en `trabajos/` (medidas finales del plano, alto × ancho en cm, con su N° de pieza) y se lista en `trabajos/index.json`. Al importarlo, las impresiones usan el N° del plano como REF.
 
 ## Fórmulas
 
@@ -79,6 +84,7 @@ Ejemplo 98 × 68, r = 1: base 99,8 × 69,8 · C2 7,2 cm (horizontal 55,4) · C3 
 
 - Corte 3 placas (9 + 9 + 18 mm): `altoCorte × anchoCorte` cada una
 - Moldura interior (fresa): `(H − 2(marco + surco)) × (A − 2(marco + surco))`
+- Si el frente mide menos de 18 cm (2 × (marco + surco)), se hace igual en media caña pero **sin centro**; cuenta igual en el despiece
 - Refilado post-armado: `(H − 0,2) × (A − 0,2)`
 
 Ejemplo 98 × 68, r = 1: placas 99,8 × 69,8 · fresa 80 × 50 · refilado 97,8 × 67,8

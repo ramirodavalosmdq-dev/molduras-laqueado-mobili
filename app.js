@@ -156,7 +156,7 @@
       return `
         <div class="history-item">
           <div class="info">
-            <div class="dims">${dimsStr}</div>
+            <div class="dims">${item.nro != null ? '<span class="nro">N° ' + escapeHtml(String(item.nro)) + '</span> ' : ''}${dimsStr}</div>
             <div class="meta">
               <span class="model-tag">${escapeHtml(modelLabel)}</span>
               <span>${whenStr}${clienteStr}</span>
@@ -357,10 +357,9 @@
       return;
     }
     const d = computeMediaCana(H, A, cant, r, marco, surco);
-    if (d.molduraAlto <= 0 || d.molduraAncho <= 0) {
-      showError(`El frente es muy chico para la moldura. Alto y ancho deben superar ${fmt(d.descuento)} cm.`);
-      return;
-    }
+    // Regla de taller: si mide menos de 18 cm se hace igual en media caña, sin la parte del centro
+    d.sinCentro = (d.molduraAlto <= 0 || d.molduraAncho <= 0);
+    const molduraStr = d.sinCentro ? 'Sin centro' : `${fmt(d.molduraAlto)} × ${fmt(d.molduraAncho)}`;
     clearError();
 
     const nPlacas = cant;
@@ -378,7 +377,7 @@
       </div>
       <div class="stat">
         <div class="label">Moldura interior</div>
-        <div class="value">${fmt(d.molduraAlto)} × ${fmt(d.molduraAncho)}</div>
+        <div class="value">${molduraStr}</div>
       </div>
     `;
 
@@ -391,7 +390,9 @@
       <tr><td>Cara inferior</td><td class="num">${nPlacas}</td><td class="num">9 mm</td><td class="num">${fmt(d.altoBruto)}</td><td class="num">${fmt(d.anchoBruto)}</td></tr>
       <tr><td>Base mecanizado</td><td class="num">${nPlacas}</td><td class="num">18 mm</td><td class="num">${fmt(d.altoBruto)}</td><td class="num">${fmt(d.anchoBruto)}</td></tr>
       <tr class="group-head"><td colspan="5">Fresado — moldura interior (surco media caña)</td></tr>
-      <tr><td>Marco interior fresa</td><td class="num">—</td><td class="num">—</td><td class="num">${fmt(d.molduraAlto)}</td><td class="num">${fmt(d.molduraAncho)}</td></tr>
+      ${d.sinCentro
+        ? `<tr><td colspan="5">Sin centro: mide menos de ${fmt(d.descuento)} cm, va con media caña pero sin la parte del centro</td></tr>`
+        : `<tr><td>Marco interior fresa</td><td class="num">—</td><td class="num">—</td><td class="num">${fmt(d.molduraAlto)}</td><td class="num">${fmt(d.molduraAncho)}</td></tr>`}
       <tr class="group-head"><td colspan="5">Refilado post-armado (antes del canto)</td></tr>
       <tr><td>Medida refilado</td><td class="num">—</td><td class="num">—</td><td class="num">${fmt(d.refiladoAlto)}</td><td class="num">${fmt(d.refiladoAncho)}</td></tr>
     `;
@@ -492,7 +493,9 @@
         `  ${r.cant} × 9 mm  — ${fmt(r.altoBruto)} × ${fmt(r.anchoBruto)} (cara inferior)`,
         `  ${r.cant} × 18 mm — ${fmt(r.altoBruto)} × ${fmt(r.anchoBruto)} (base mecanizado)`,
         ``,
-        `MOLDURA INTERIOR (fresa media caña): ${fmt(r.molduraAlto)} × ${fmt(r.molduraAncho)} cm`,
+        r.sinCentro
+          ? `MOLDURA: media caña SIN CENTRO (menos de ${fmt(r.descuento)} cm)`
+          : `MOLDURA INTERIOR (fresa media caña): ${fmt(r.molduraAlto)} × ${fmt(r.molduraAncho)} cm`,
       );
     } else if (r.model === 'simple-placar') {
       const nF = 2 * r.cant;
@@ -581,7 +584,7 @@
       const cant = (item.cant != null && item.cant >= 1) ? item.cant : 1;
       const altoBruto = item.H - 2 * CANTO + 2 * r;
       const anchoBruto = item.A - 2 * CANTO + 2 * r;
-      return { ...item, ref: i + 1, r, cant, altoBruto, anchoBruto };
+      return { ...item, ref: item.nro != null ? item.nro : i + 1, r, cant, altoBruto, anchoBruto };
     });
 
     const metaLine = [];
@@ -735,7 +738,7 @@
       const cant = (item.cant != null && item.cant >= 1) ? item.cant : 1;
       const altoBruto = item.H - 2 * CANTO + 2 * r;
       const anchoBruto = item.A - 2 * CANTO + 2 * r;
-      return { ...item, ref: i + 1, r, cant, altoBruto, anchoBruto };
+      return { ...item, ref: item.nro != null ? item.nro : i + 1, r, cant, altoBruto, anchoBruto };
     });
 
     const bases12 = [], bases18 = [], caras9 = [];
@@ -1008,6 +1011,56 @@
       list.splice(idx, 1);
       saveHistory(list);
       renderHistory();
+    }
+  });
+
+  // Importar trabajos (archivos en /trabajos del repo)
+  const $btnImport = $('btn-import');
+  const $importPanel = $('import-panel');
+  $btnImport.addEventListener('click', async () => {
+    if (!$importPanel.hidden) { $importPanel.hidden = true; return; }
+    $importPanel.hidden = false;
+    $importPanel.innerHTML = '<div class="history-empty">Buscando trabajos…</div>';
+    try {
+      const idx = await fetch('./trabajos/index.json', { cache: 'no-cache' }).then(r => r.json());
+      $importPanel.innerHTML = idx.map(t => `
+        <div class="history-item">
+          <div class="info">
+            <div class="dims">${escapeHtml(t.nombre)}</div>
+            <div class="meta"><span class="model-tag">${escapeHtml(MODEL_LABELS[t.modelo] || t.modelo)}</span><span>${t.frentes} frentes · ${escapeHtml(t.fecha || '')}</span></div>
+          </div>
+          <button data-file="${escapeHtml(t.archivo)}" type="button">Importar</button>
+        </div>`).join('') || '<div class="history-empty">No hay trabajos para importar.</div>';
+    } catch (e) {
+      $importPanel.innerHTML = '<div class="history-empty">No se pudo leer la lista de trabajos. Revisá la conexión.</div>';
+    }
+  });
+  $importPanel.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-file]');
+    if (!btn) return;
+    try {
+      const job = await fetch('./trabajos/' + btn.dataset.file, { cache: 'no-cache' }).then(r => r.json());
+      const prev = loadHistory();
+      if (prev.length && !confirm(`Esto reemplaza el historial actual (${prev.length} frentes) por "${job.nombre}". ¿Seguir?`)) return;
+      const now = Date.now();
+      const list = job.frentes.map((f, i) => ({
+        model: job.modelo, nro: f.nro, H: f.alto, A: f.ancho, cant: f.cant,
+        r: f.r != null ? f.r : (job.refilado != null ? job.refilado : 1),
+        marco: job.marco, surco: job.surco, c2: job.c2, c3: job.c3, faja: job.faja,
+        cliente: job.cliente || '', orden: job.orden || '', t: now - i,
+      }));
+      saveHistory(list.slice(0, MAX_HISTORY));
+      $cliente.value = job.cliente || '';
+      $orden.value = job.orden || '';
+      historyFilter = 'all';
+      $historyFilters.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('active', c.dataset.filter === 'all'));
+      saveConfig();
+      renderHistory();
+      updateMeta();
+      $importPanel.hidden = true;
+      showToast(`Importados ${list.length} frentes`);
+    } catch (err) {
+      showToast('No se pudo importar el trabajo');
     }
   });
 

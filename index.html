@@ -534,6 +534,9 @@ button.primary:hover { background: var(--primary-hover); border-color: var(--pri
   gap: 8px;
 }
 .history-actions button { width: 100%; }
+.btn-import { width: 100%; margin: 4px 0 10px; }
+.import-panel { border: 1px dashed var(--border); border-radius: 10px; padding: 4px 10px; margin-bottom: 12px; }
+.history-item .nro { font-weight: 700; margin-right: 4px; }
 
 footer {
   margin-top: 20px;
@@ -729,6 +732,8 @@ footer {
       <button class="filter-chip" data-filter="media-cana" type="button">Media caña</button>
       <button class="filter-chip" data-filter="simple-placar" type="button">Placar</button>
     </div>
+    <button id="btn-import" type="button" class="btn-import">Importar trabajo</button>
+    <div id="import-panel" class="import-panel" hidden></div>
     <div id="history-body">
       <div class="history-empty">Aún no guardaste ningún frente.</div>
     </div>
