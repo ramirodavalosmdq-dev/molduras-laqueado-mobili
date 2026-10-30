@@ -592,7 +592,7 @@
     }).sort((a, b) => (a.nro != null && b.nro != null) ? a.nro - b.nro : 0);
 
     const metaLine = [];
-    if (cliente) metaLine.push(`<div><strong>Cliente:</strong> ${esc(cliente)}</div>`);
+    if (cliente) metaLine.push(`<div class="cliente">${esc(cliente)}</div>`);
     if (orden) metaLine.push(`<div><strong>Orden N°:</strong> ${esc(orden)}</div>`);
     metaLine.push(`<div>Fecha: ${hoy}</div>`);
 
@@ -600,8 +600,9 @@
     const indiceItems = items.map(f => `
       <div class="indice-item">
         <span class="ref">N° ${f.ref}</span>
-        <span class="medida">${fmt(f.H)} × ${fmt(f.A)}${f.plano ? '<small> · plano ' + esc(f.plano) + '</small>' : ''}</span>
         <span class="cant">×${f.cant}</span>
+        <span class="medida">${fmt(f.H)} × ${fmt(f.A)} cm</span>
+        ${f.plano ? '<span class="plano">plano ' + esc(f.plano) + '</span>' : ''}
       </div>
     `).join('');
 
@@ -609,6 +610,7 @@
     const bases12 = [], bases18 = [], caras9 = [];
     const c2v = [], c2h = [], c3v = [], c3h = [];
     const spV = [], spH = [];
+    const fresado = [];
 
     for (const it of items) {
       const m = it.model;
@@ -632,6 +634,9 @@
       } else if (m === 'media-cana') {
         caras9.push({ ref: it.ref, cant: it.cant * 2, alto: it.altoBruto, ancho: it.anchoBruto });
         bases18.push({ ref: it.ref, cant: it.cant, alto: it.altoBruto, ancho: it.anchoBruto });
+        const desc = 2 * ((it.marco || DEFAULTS.marcoMC) + (it.surco || DEFAULTS.surcoMC));
+        const mAlto = it.H - desc, mAncho = it.A - desc;
+        fresado.push({ ref: it.ref, cant: it.cant, mAlto, mAncho, sinCentro: mAlto <= 0 || mAncho <= 0, rAlto: it.H - 2 * CANTO, rAncho: it.A - 2 * CANTO });
       }
     }
 
@@ -639,7 +644,8 @@
       <tr>
         <td class="ref-cell">N° ${f.ref}</td>
         <td class="num">${f.cant}</td>
-        <td class="num">${fmt(f.alto)} × ${fmt(f.ancho)}</td>
+        <td class="medida-cell">${fmt(f.alto)} × ${fmt(f.ancho)}</td>
+        <td class="chk"><span></span></td>
       </tr>
     `;
 
@@ -647,7 +653,7 @@
       <div class="table-block">
         <div class="section-title"><span>${title}</span><span class="meta-info">${meta}</span></div>
         <table>
-          <thead><tr><th>N°</th><th class="num">Cant</th><th class="num">Alto × Ancho (cm)</th></tr></thead>
+          <thead><tr><th>N°</th><th class="num">Cant</th><th>Corte alto × ancho (cm)</th><th class="chk">✓</th></tr></thead>
           <tbody>${rows.map(fila3col).join('')}</tbody>
         </table>
       </div>
@@ -665,39 +671,54 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
 <style>
-  @page { size: A4; margin: 12mm 10mm; }
+  @page { size: A4; margin: 12mm 12mm 14mm; }
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Poppins',Arial,sans-serif; color:#0A1B4A; font-size:10px; line-height:1.35; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-  .header { display:flex; justify-content:space-between; align-items:flex-end; border-bottom:3px solid #0F2C6B; padding-bottom:8px; margin-bottom:12px; }
-  .brand { display:flex; align-items:center; gap:10px; }
-  .brand-icon { width:26px; height:26px; }
-  .brand-name { font-size:22px; font-weight:800; color:#0F2C6B; letter-spacing:.03em; line-height:1; }
-  .subtitle { font-size:9px; color:#4A5568; margin-top:3px; letter-spacing:.08em; text-transform:uppercase; }
-  .meta { text-align:right; font-size:10px; color:#4A5568; line-height:1.5; }
-  .meta strong { color:#0A1B4A; font-weight:600; }
-  .section-title { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#0F2C6B; margin:14px 0 6px; padding-bottom:3px; border-bottom:1px solid #DDE0E6; display:flex; justify-content:space-between; align-items:baseline; }
-  .section-title .meta-info { font-size:9px; color:#4A5568; font-weight:500; text-transform:none; letter-spacing:0; }
-  .indice { display:grid; grid-template-columns:repeat(4,1fr); gap:4px 10px; margin-bottom:4px; }
-  .indice-item { padding:3px 8px; background:#EDF1FA; border-radius:3px; display:flex; justify-content:space-between; align-items:center; gap:6px; font-size:10px; font-variant-numeric:tabular-nums; }
-  .indice-item .ref { font-weight:700; color:#0F2C6B; min-width:22px; }
-  .indice-item .medida { color:#0A1B4A; flex:1; text-align:center; }
-  .indice-item .cant { color:#4A5568; font-weight:600; }
-  .tables-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px 12px; }
-  .table-block { page-break-inside:avoid; }
+  body { font-family:'Poppins',Arial,sans-serif; color:#0A1B4A; font-size:12px; line-height:1.35; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .header { display:flex; justify-content:space-between; align-items:center; gap:16px; background:#0F2C6B; color:#fff; border-radius:8px; padding:12px 16px; margin-bottom:14px; }
+  .brand { display:flex; align-items:center; gap:12px; }
+  .brand-icon { width:30px; height:30px; }
+  .brand-name { font-size:24px; font-weight:800; letter-spacing:.04em; line-height:1; color:#fff; }
+  .subtitle { font-size:15px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; margin-top:4px; color:#fff; }
+  .meta { text-align:right; font-size:12px; line-height:1.55; color:#DCE4F5; }
+  .meta strong { color:#fff; font-weight:700; }
+  .meta .cliente { font-size:15px; color:#fff; font-weight:700; }
+  .section-title { font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:#0F2C6B; margin:16px 0 6px; padding:6px 10px; background:#E8EEFA; border-left:5px solid #0F2C6B; border-radius:3px; display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+  .section-title .meta-info { font-size:12px; color:#0F2C6B; font-weight:600; text-transform:none; letter-spacing:0; white-space:nowrap; }
+  .indice { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; margin-bottom:2px; }
+  .indice-item { border:1px solid #C9D3EA; border-radius:5px; padding:4px 7px; display:grid; grid-template-columns:1fr auto; gap:0 6px; font-variant-numeric:tabular-nums; page-break-inside:avoid; }
+  .indice-item .ref { font-weight:800; color:#0F2C6B; font-size:12px; }
+  .indice-item .cant { font-weight:700; color:#0F2C6B; font-size:12px; text-align:right; }
+  .indice-item .medida { grid-column:1 / -1; font-size:11px; font-weight:600; }
+  .indice-item .plano { grid-column:1 / -1; font-size:9.5px; color:#5B6782; }
+  .tables-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px 14px; }
+  .table-block { page-break-inside:auto; }
   .full-width { grid-column:1 / -1; }
-  table { width:100%; border-collapse:collapse; font-size:10px; font-variant-numeric:tabular-nums; }
-  th { text-align:left; padding:3px 6px; background:#F5F7FB; color:#0F2C6B; font-weight:600; text-transform:uppercase; font-size:8px; letter-spacing:.05em; border-bottom:1px solid #DDE0E6; }
-  th.num { text-align:right; }
-  td { padding:3px 6px; border-bottom:.5px solid #EEF0F4; }
-  td.num { text-align:right; }
-  td.ref-cell { font-weight:600; color:#0F2C6B; }
-  .totales { margin-top:14px; padding-top:8px; border-top:2px solid #0F2C6B; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; font-size:10px; color:#0A1B4A; }
-  .totales strong { font-weight:700; color:#0F2C6B; }
+  table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+  thead { display:table-header-group; }
+  tr { page-break-inside:avoid; }
+  th { text-align:left; padding:5px 8px; color:#5B6782; font-weight:700; text-transform:uppercase; font-size:9.5px; letter-spacing:.06em; border-bottom:2px solid #0F2C6B; }
+  th.num, td.num { text-align:center; }
+  td { padding:6px 8px; border-bottom:1px solid #DCE2EE; font-size:13px; }
+  tbody tr:nth-child(even) td { background:#F6F8FC; }
+  td.ref-cell { font-weight:800; color:#0F2C6B; font-size:14px; width:64px; white-space:nowrap; }
+  td.num { width:56px; font-weight:700; font-size:14px; }
+  td.medida-cell { font-size:16px; font-weight:700; letter-spacing:.01em; white-space:nowrap; }
+  td.sub { font-size:14px; font-weight:600; color:#0A1B4A; white-space:nowrap; }
+  td.tag { font-size:11px; font-weight:800; color:#9A5B00; }
+  th.chk, td.chk { width:34px; text-align:center; }
+  td.chk span { display:inline-block; width:15px; height:15px; border:1.5px solid #0F2C6B; border-radius:3px; vertical-align:middle; }
+  .totales { margin-top:16px; border:2px solid #0F2C6B; border-radius:8px; display:flex; flex-wrap:wrap; page-break-inside:avoid; }
+  .totales > span { flex:1 1 0; min-width:90px; padding:8px 10px; text-align:center; font-size:11px; color:#3A4766; border-right:1px solid #C9D3EA; }
+  .totales > span:last-child { border-right:none; background:#0F2C6B; color:#fff; }
+  .totales strong { display:block; font-size:20px; font-weight:800; color:#0F2C6B; line-height:1.1; }
+  .totales > span:last-child strong { color:#fff; }
+  .firma { margin-top:22px; display:flex; gap:24px; font-size:11px; color:#5B6782; page-break-inside:avoid; }
+  .firma div { flex:1; border-top:1px solid #8A94AD; padding-top:4px; }
 </style></head><body>
   <div class="header">
     <div><div class="brand">
       <svg class="brand-icon" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-        <rect x="6" y="6" width="28" height="28" fill="none" stroke="#0F2C6B" stroke-width="6.5"/>
+        <rect x="6" y="6" width="28" height="28" fill="none" stroke="#FFFFFF" stroke-width="6.5"/>
       </svg>
       <div><div class="brand-name">MOBILI</div><div class="subtitle">Orden de corte</div></div>
     </div></div>
@@ -706,11 +727,13 @@
   <div class="section-title"><span>Índice de frentes</span><span class="meta-info">${plural(items.length, 'frente', 'frentes')} · ${plural(totalPiezas, 'pieza', 'piezas')} totales</span></div>
   <div class="indice">${indiceItems}</div>
   ${bases12.length ? `<div class="table-block full-width"><div class="section-title"><span>Base — MDF 12 mm</span><span class="meta-info">${plural(totalBases12, 'pieza', 'piezas')}</span></div>
-    <table><thead><tr><th>N°</th><th class="num">Cant</th><th class="num">Alto × Ancho (cm)</th></tr></thead><tbody>${bases12.map(fila3col).join('')}</tbody></table></div>` : ''}
+    <table><thead><tr><th>N°</th><th class="num">Cant</th><th>Corte alto × ancho (cm)</th><th class="chk">✓</th></tr></thead><tbody>${bases12.map(fila3col).join('')}</tbody></table></div>` : ''}
   ${bases18.length ? `<div class="table-block full-width"><div class="section-title"><span>Base — MDF 18 mm (media caña)</span><span class="meta-info">${plural(totalBases18, 'pieza', 'piezas')}</span></div>
-    <table><thead><tr><th>N°</th><th class="num">Cant</th><th class="num">Alto × Ancho (cm)</th></tr></thead><tbody>${bases18.map(fila3col).join('')}</tbody></table></div>` : ''}
+    <table><thead><tr><th>N°</th><th class="num">Cant</th><th>Corte alto × ancho (cm)</th><th class="chk">✓</th></tr></thead><tbody>${bases18.map(fila3col).join('')}</tbody></table></div>` : ''}
   ${caras9.length ? `<div class="table-block full-width"><div class="section-title"><span>Caras — MDF 9 mm (media caña)</span><span class="meta-info">${plural(totalCaras9, 'pieza', 'piezas')}</span></div>
-    <table><thead><tr><th>N°</th><th class="num">Cant</th><th class="num">Alto × Ancho (cm)</th></tr></thead><tbody>${caras9.map(fila3col).join('')}</tbody></table></div>` : ''}
+    <table><thead><tr><th>N°</th><th class="num">Cant</th><th>Corte alto × ancho (cm)</th><th class="chk">✓</th></tr></thead><tbody>${caras9.map(fila3col).join('')}</tbody></table></div>` : ''}
+  ${fresado.length ? `<div class="table-block full-width"><div class="section-title"><span>Fresado y refilado — media caña</span><span class="meta-info">después de armar las 3 placas</span></div>
+    <table><thead><tr><th>N°</th><th class="num">Frentes</th><th>Moldura interior (fresa)</th><th>Refilado (antes del canto)</th><th class="chk">✓</th></tr></thead><tbody>${fresado.map(f => `<tr><td class="ref-cell">N° ${f.ref}</td><td class="num">${f.cant}</td>${f.sinCentro ? '<td class="tag">SIN CENTRO</td>' : `<td class="sub">${fmt(f.mAlto)} × ${fmt(f.mAncho)}</td>`}<td class="sub">${fmt(f.rAlto)} × ${fmt(f.rAncho)}</td><td class="chk"><span></span></td></tr>`).join('')}</tbody></table></div>` : ''}
   <div class="tables-grid">
     ${section('Capa 2 — verticales (3mm)', 'step', c2v)}
     ${section('Capa 2 — horizontales (3mm)', 'step', c2h)}
@@ -729,6 +752,7 @@
     ${totalSP ? `<span><strong>${totalSP}</strong> fajas placar (5mm)</span>` : ''}
     <span><strong>${totalPiezas}</strong> piezas totales</span>
   </div>
+  <div class="firma"><div>Cortó</div><div>Controló</div><div>Fecha de corte</div></div>
 </body></html>`;
   }
 
@@ -781,30 +805,31 @@
     const grupos = Array.from(tirasPorAncho.values()).sort((a, b) => a.ancho - b.ancho);
 
     const metaLine = [];
-    if (cliente) metaLine.push(`<div><strong>Cliente:</strong> ${esc(cliente)}</div>`);
+    if (cliente) metaLine.push(`<div class="cliente">${esc(cliente)}</div>`);
     if (orden) metaLine.push(`<div><strong>Orden N°:</strong> ${esc(orden)}</div>`);
     metaLine.push(`<div>Fecha: ${hoy}</div>`);
 
     const indiceItems = items.map(f => `
       <div class="indice-item">
         <span class="ref">N° ${f.ref}</span>
-        <span class="medida">${fmt(f.H)} × ${fmt(f.A)}${f.plano ? '<small> · plano ' + esc(f.plano) + '</small>' : ''}</span>
         <span class="cant">×${f.cant}</span>
+        <span class="medida">${fmt(f.H)} × ${fmt(f.A)} cm</span>
+        ${f.plano ? '<span class="plano">plano ' + esc(f.plano) + '</span>' : ''}
       </div>
     `).join('');
 
-    const fila3col = (b) => `<tr><td class="ref-cell">N° ${b.ref}</td><td class="num">${b.cant}</td><td class="num">${fmt(b.alto)} × ${fmt(b.ancho)}</td></tr>`;
-    const filaTira = (t) => `<tr><td class="ref-cell">N° ${t.ref}</td><td class="num">${t.cant}</td><td class="num">${fmt(t.largo)}</td></tr>`;
+    const fila3col = (b) => `<tr><td class="ref-cell">N° ${b.ref}</td><td class="num">${b.cant}</td><td class="medida-cell">${fmt(b.alto)} × ${fmt(b.ancho)}</td><td class="chk"><span></span></td></tr>`;
+    const filaTira = (t) => `<tr><td class="ref-cell">N° ${t.ref}</td><td class="num">${t.cant}</td><td class="medida-cell">${fmt(t.largo)}</td><td class="chk"><span></span></td></tr>`;
 
     const bloqueBases = (titulo, meta, arr) => arr.length === 0 ? '' : `
       <div class="table-block"><div class="section-title"><span>${titulo}</span><span class="meta-info">${meta}</span></div>
-      <table><thead><tr><th>N°</th><th class="num">Cant</th><th class="num">Alto × Ancho (cm)</th></tr></thead><tbody>${arr.map(fila3col).join('')}</tbody></table></div>`;
+      <table><thead><tr><th>N°</th><th class="num">Cant</th><th>Corte alto × ancho (cm)</th><th class="chk">✓</th></tr></thead><tbody>${arr.map(fila3col).join('')}</tbody></table></div>`;
 
     const bloquesTiras = grupos.map(g => {
       const total = g.tiras.reduce((s, t) => s + t.cant, 0);
       return `<div class="table-block">
         <div class="section-title"><span>Tiras ${g.espesor} × ${fmt(g.ancho)} cm (final ${fmt(g.anchoFinal)} cm)</span><span class="meta-info">${plural(total, 'pieza', 'piezas')}</span></div>
-        <table><thead><tr><th>N°</th><th class="num">Cant</th><th class="num">Largo (cm)</th></tr></thead><tbody>${g.tiras.map(filaTira).join('')}</tbody></table>
+        <table><thead><tr><th>N°</th><th class="num">Cant</th><th>Largo de corte (cm)</th><th class="chk">✓</th></tr></thead><tbody>${g.tiras.map(filaTira).join('')}</tbody></table>
       </div>`;
     }).join('');
 
@@ -829,38 +854,54 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
 <style>
-  @page { size: A4; margin: 12mm 10mm; }
+  @page { size: A4; margin: 12mm 12mm 14mm; }
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Poppins',Arial,sans-serif; color:#0A1B4A; font-size:10px; line-height:1.35; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-  .header { display:flex; justify-content:space-between; align-items:flex-end; border-bottom:3px solid #0F2C6B; padding-bottom:8px; margin-bottom:12px; }
-  .brand { display:flex; align-items:center; gap:10px; }
-  .brand-icon { width:26px; height:26px; }
-  .brand-name { font-size:22px; font-weight:800; color:#0F2C6B; letter-spacing:.03em; line-height:1; }
-  .subtitle { font-size:9px; color:#4A5568; margin-top:3px; letter-spacing:.08em; text-transform:uppercase; }
-  .meta { text-align:right; font-size:10px; color:#4A5568; line-height:1.5; }
-  .meta strong { color:#0A1B4A; font-weight:600; }
-  .section-title { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#0F2C6B; margin:14px 0 6px; padding-bottom:3px; border-bottom:1px solid #DDE0E6; display:flex; justify-content:space-between; align-items:baseline; }
-  .section-title .meta-info { font-size:9px; color:#4A5568; font-weight:500; text-transform:none; letter-spacing:0; }
-  .indice { display:grid; grid-template-columns:repeat(4,1fr); gap:4px 10px; margin-bottom:4px; }
-  .indice-item { padding:3px 8px; background:#EDF1FA; border-radius:3px; display:flex; justify-content:space-between; align-items:center; gap:6px; font-size:10px; font-variant-numeric:tabular-nums; }
-  .indice-item .ref { font-weight:700; color:#0F2C6B; min-width:22px; }
-  .indice-item .medida { color:#0A1B4A; flex:1; text-align:center; }
-  .indice-item .cant { color:#4A5568; font-weight:600; }
-  .tables-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px 12px; }
-  .table-block { page-break-inside:avoid; }
-  table { width:100%; border-collapse:collapse; font-size:10px; font-variant-numeric:tabular-nums; }
-  th { text-align:left; padding:3px 6px; background:#F5F7FB; color:#0F2C6B; font-weight:600; text-transform:uppercase; font-size:8px; letter-spacing:.05em; border-bottom:1px solid #DDE0E6; }
-  th.num { text-align:right; }
-  td { padding:3px 6px; border-bottom:.5px solid #EEF0F4; }
-  td.num { text-align:right; }
-  td.ref-cell { font-weight:600; color:#0F2C6B; }
-  .totales { margin-top:14px; padding-top:8px; border-top:2px solid #0F2C6B; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; font-size:10px; color:#0A1B4A; }
-  .totales strong { font-weight:700; color:#0F2C6B; }
+  body { font-family:'Poppins',Arial,sans-serif; color:#0A1B4A; font-size:12px; line-height:1.35; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .header { display:flex; justify-content:space-between; align-items:center; gap:16px; background:#0F2C6B; color:#fff; border-radius:8px; padding:12px 16px; margin-bottom:14px; }
+  .brand { display:flex; align-items:center; gap:12px; }
+  .brand-icon { width:30px; height:30px; }
+  .brand-name { font-size:24px; font-weight:800; letter-spacing:.04em; line-height:1; color:#fff; }
+  .subtitle { font-size:15px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; margin-top:4px; color:#fff; }
+  .meta { text-align:right; font-size:12px; line-height:1.55; color:#DCE4F5; }
+  .meta strong { color:#fff; font-weight:700; }
+  .meta .cliente { font-size:15px; color:#fff; font-weight:700; }
+  .section-title { font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:#0F2C6B; margin:16px 0 6px; padding:6px 10px; background:#E8EEFA; border-left:5px solid #0F2C6B; border-radius:3px; display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+  .section-title .meta-info { font-size:12px; color:#0F2C6B; font-weight:600; text-transform:none; letter-spacing:0; white-space:nowrap; }
+  .indice { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; margin-bottom:2px; }
+  .indice-item { border:1px solid #C9D3EA; border-radius:5px; padding:4px 7px; display:grid; grid-template-columns:1fr auto; gap:0 6px; font-variant-numeric:tabular-nums; page-break-inside:avoid; }
+  .indice-item .ref { font-weight:800; color:#0F2C6B; font-size:12px; }
+  .indice-item .cant { font-weight:700; color:#0F2C6B; font-size:12px; text-align:right; }
+  .indice-item .medida { grid-column:1 / -1; font-size:11px; font-weight:600; }
+  .indice-item .plano { grid-column:1 / -1; font-size:9.5px; color:#5B6782; }
+  .tables-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px 14px; }
+  .table-block { page-break-inside:auto; }
+  .full-width { grid-column:1 / -1; }
+  table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+  thead { display:table-header-group; }
+  tr { page-break-inside:avoid; }
+  th { text-align:left; padding:5px 8px; color:#5B6782; font-weight:700; text-transform:uppercase; font-size:9.5px; letter-spacing:.06em; border-bottom:2px solid #0F2C6B; }
+  th.num, td.num { text-align:center; }
+  td { padding:6px 8px; border-bottom:1px solid #DCE2EE; font-size:13px; }
+  tbody tr:nth-child(even) td { background:#F6F8FC; }
+  td.ref-cell { font-weight:800; color:#0F2C6B; font-size:14px; width:64px; white-space:nowrap; }
+  td.num { width:56px; font-weight:700; font-size:14px; }
+  td.medida-cell { font-size:16px; font-weight:700; letter-spacing:.01em; white-space:nowrap; }
+  td.sub { font-size:14px; font-weight:600; color:#0A1B4A; white-space:nowrap; }
+  td.tag { font-size:11px; font-weight:800; color:#9A5B00; }
+  th.chk, td.chk { width:34px; text-align:center; }
+  td.chk span { display:inline-block; width:15px; height:15px; border:1.5px solid #0F2C6B; border-radius:3px; vertical-align:middle; }
+  .totales { margin-top:16px; border:2px solid #0F2C6B; border-radius:8px; display:flex; flex-wrap:wrap; page-break-inside:avoid; }
+  .totales > span { flex:1 1 0; min-width:90px; padding:8px 10px; text-align:center; font-size:11px; color:#3A4766; border-right:1px solid #C9D3EA; }
+  .totales > span:last-child { border-right:none; background:#0F2C6B; color:#fff; }
+  .totales strong { display:block; font-size:20px; font-weight:800; color:#0F2C6B; line-height:1.1; }
+  .totales > span:last-child strong { color:#fff; }
+  .firma { margin-top:22px; display:flex; gap:24px; font-size:11px; color:#5B6782; page-break-inside:avoid; }
+  .firma div { flex:1; border-top:1px solid #8A94AD; padding-top:4px; }
 </style></head><body>
   <div class="header">
     <div><div class="brand">
       <svg class="brand-icon" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-        <rect x="6" y="6" width="28" height="28" fill="none" stroke="#0F2C6B" stroke-width="6.5"/>
+        <rect x="6" y="6" width="28" height="28" fill="none" stroke="#FFFFFF" stroke-width="6.5"/>
       </svg>
       <div><div class="brand-name">MOBILI</div><div class="subtitle">Corte por medida</div></div>
     </div></div>
@@ -873,6 +914,7 @@
   ${bloqueBases('Caras 9 mm — Media caña', `${plural(totalCaras9, 'pieza', 'piezas')}`, caras9)}
   <div class="tables-grid">${bloquesTiras}</div>
   <div class="totales">${totalesPie.join('')}</div>
+  <div class="firma"><div>Cortó</div><div>Controló</div><div>Fecha de corte</div></div>
 </body></html>`;
   }
 
@@ -1031,7 +1073,7 @@
   });
 
   // ============== MENÚ HAMBURGUESA + BIBLIOTECA DE TRABAJOS ==============
-  const APP_VERSION = 'v1.2';
+  const APP_VERSION = 'v1.3';
   const JOB_KEY = 'mobili-molduras-trabajo-activo-v1';
   const $drawer = $('drawer');
   const $drawerOverlay = $('drawer-overlay');
