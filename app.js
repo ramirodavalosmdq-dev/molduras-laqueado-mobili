@@ -579,10 +579,10 @@
 
   // ============== PRINT BATCH (orden de corte agrupado por operacion) ==============
   function buildBatchPrintHTML(list, cliente, orden) {
+    // Orden de corte compacta: una fila por frente con todas sus piezas (entra en 1–2 hojas A4)
     const esc = escapeHtml;
     const hoy = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' });
 
-    // Procesar items (fórmula unificada con canto y refilado por frente)
     const items = list.map((item, i) => {
       const r = (item.r != null) ? item.r : 1;
       const cant = (item.cant != null && item.cant >= 1) ? item.cant : 1;
@@ -596,162 +596,111 @@
     if (orden) metaLine.push(`<div><strong>Orden N°:</strong> ${esc(orden)}</div>`);
     metaLine.push(`<div>Fecha: ${hoy}</div>`);
 
-    // Indice (muestra MEDIDA FINAL del plano)
-    const indiceItems = items.map(f => `
-      <div class="indice-item">
-        <span class="ref">N° ${f.ref}</span>
-        <span class="cant">×${f.cant}</span>
-        <span class="medida">${fmt(f.H)} × ${fmt(f.A)} cm</span>
-        ${f.plano ? '<span class="plano">plano ' + esc(f.plano) + '</span>' : ''}
-      </div>
-    `).join('');
+    const mc = items.filter(it => it.model === 'media-cana');
+    const st = items.filter(it => it.model === 'step');
+    const sp = items.filter(it => it.model === 'simple-placar');
+    const tot = { frentes: 0, b12: 0, b18: 0, c9: 0, f3: 0, f5: 0 };
+    const chk = '<td class="chk"><span></span></td>';
+    const nroCell = (f) => `<td class="ref-cell">N° ${f.ref}${f.cant > 1 ? ` <b class="x">×${f.cant}</b>` : ''}</td>`;
+    const finalCell = (f) => `<td class="fin">${fmt(f.H)} × ${fmt(f.A)}${f.plano ? `<small>plano ${esc(f.plano)}</small>` : ''}</td>`;
+    const corteCell = (f) => `<td class="medida-cell">${fmt(f.altoBruto)} × ${fmt(f.anchoBruto)}</td>`;
+    const piece = (n, alto, ancho) => `<td class="pz"><b>${n}</b> × ${fmt(alto)} × ${fmt(ancho)}</td>`;
 
-    // Agrupar piezas por operación
-    const bases12 = [], bases18 = [], caras9 = [];
-    const c2v = [], c2h = [], c3v = [], c3h = [];
-    const spV = [], spH = [];
-    const fresado = [];
-
-    for (const it of items) {
-      const m = it.model;
-      if (m === 'step') {
-        const c2 = it.c2 || 6.3, c3 = it.c3 || 6;
-        const c2b = c2 - CANTO + it.r, c3b = c3 - CANTO + it.r;
-        const c2hz = it.anchoBruto - 2 * c2b;
-        const c3hz = it.anchoBruto - 2 * c3b;
-        bases12.push({ ref: it.ref, cant: it.cant, alto: it.altoBruto, ancho: it.anchoBruto });
-        c2v.push({ ref: it.ref, cant: it.cant * 2, alto: it.altoBruto, ancho: c2b });
-        c2h.push({ ref: it.ref, cant: it.cant * 2, alto: c2b, ancho: c2hz });
-        c3v.push({ ref: it.ref, cant: it.cant * 2, alto: it.altoBruto, ancho: c3b });
-        c3h.push({ ref: it.ref, cant: it.cant * 2, alto: c3b, ancho: c3hz });
-      } else if (m === 'simple-placar') {
-        const f = it.faja || 8;
-        const fb = f - CANTO + it.r;
-        const fhz = it.anchoBruto - 2 * fb;
-        bases12.push({ ref: it.ref, cant: it.cant, alto: it.altoBruto, ancho: it.anchoBruto });
-        spV.push({ ref: it.ref, cant: it.cant * 2, alto: it.altoBruto, ancho: fb });
-        spH.push({ ref: it.ref, cant: it.cant * 2, alto: fb, ancho: fhz });
-      } else if (m === 'media-cana') {
-        caras9.push({ ref: it.ref, cant: it.cant * 2, alto: it.altoBruto, ancho: it.anchoBruto });
-        bases18.push({ ref: it.ref, cant: it.cant, alto: it.altoBruto, ancho: it.anchoBruto });
-        const desc = 2 * ((it.marco || DEFAULTS.marcoMC) + (it.surco || DEFAULTS.surcoMC));
-        const mAlto = it.H - desc, mAncho = it.A - desc;
-        fresado.push({ ref: it.ref, cant: it.cant, mAlto, mAncho, sinCentro: mAlto <= 0 || mAncho <= 0, rAlto: it.H - 2 * CANTO, rAncho: it.A - 2 * CANTO });
-      }
+    let blocks = '';
+    if (mc.length) {
+      const rows = mc.map(f => {
+        const desc = 2 * ((f.marco || DEFAULTS.marcoMC) + (f.surco || DEFAULTS.surcoMC));
+        const mA = f.H - desc, mB = f.A - desc;
+        const sin = mA <= 0 || mB <= 0;
+        tot.frentes += f.cant; tot.b18 += f.cant; tot.c9 += 2 * f.cant;
+        return `<tr>${nroCell(f)}${finalCell(f)}${corteCell(f)}<td class="num">${f.cant}</td><td class="num">${2 * f.cant}</td>${sin ? '<td class="tag">SIN CENTRO</td>' : `<td class="sub">${fmt(mA)} × ${fmt(mB)}</td>`}<td class="sub">${fmt(f.H - 2 * CANTO)} × ${fmt(f.A - 2 * CANTO)}</td>${chk}</tr>`;
+      }).join('');
+      blocks += `<div class="section-title"><span>Media caña — 3 placas iguales por frente</span><span class="meta-info">corte en cm, alto × ancho</span></div>
+      <table><thead><tr><th>N°</th><th>Final · plano</th><th>Corte</th><th class="num">18 mm</th><th class="num">9 mm</th><th>Moldura int.</th><th>Refilado</th><th class="chk">✓</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+    if (st.length) {
+      const rows = st.map(f => {
+        const c2 = f.c2 || DEFAULTS.faja2, c3 = f.c3 || DEFAULTS.faja3;
+        const c2b = c2 - CANTO + f.r, c3b = c3 - CANTO + f.r;
+        tot.frentes += f.cant; tot.b12 += f.cant; tot.f3 += 8 * f.cant;
+        return `<tr>${nroCell(f)}${finalCell(f)}${corteCell(f)}${piece(2 * f.cant, f.altoBruto, c2b)}${piece(2 * f.cant, c2b, f.anchoBruto - 2 * c2b)}${piece(2 * f.cant, f.altoBruto, c3b)}${piece(2 * f.cant, c3b, f.anchoBruto - 2 * c3b)}${chk}</tr>`;
+      }).join('');
+      blocks += `<div class="section-title"><span>Step — base 12 mm + fajas 3 mm</span><span class="meta-info">fajas: cant × alto × ancho</span></div>
+      <table><thead><tr><th>N°</th><th>Final · plano</th><th>Base 12 mm</th><th>C2 vert.</th><th>C2 horiz.</th><th>C3 vert.</th><th>C3 horiz.</th><th class="chk">✓</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+    if (sp.length) {
+      const rows = sp.map(f => {
+        const fb = (f.faja || DEFAULTS.fajaSP) - CANTO + f.r;
+        tot.frentes += f.cant; tot.b12 += f.cant; tot.f5 += 4 * f.cant;
+        return `<tr>${nroCell(f)}${finalCell(f)}${corteCell(f)}${piece(2 * f.cant, f.altoBruto, fb)}${piece(2 * f.cant, fb, f.anchoBruto - 2 * fb)}<td class="sub">${fmt(f.H - 2 * CANTO)} × ${fmt(f.A - 2 * CANTO)}</td>${chk}</tr>`;
+      }).join('');
+      blocks += `<div class="section-title"><span>Simple placar — base 12 mm + fajas 5 mm</span><span class="meta-info">fajas: cant × alto × ancho</span></div>
+      <table><thead><tr><th>N°</th><th>Final · plano</th><th>Base 12 mm</th><th>Faja vert.</th><th>Faja horiz.</th><th>Refilado</th><th class="chk">✓</th></tr></thead><tbody>${rows}</tbody></table>`;
     }
 
-    const fila3col = (f) => `
-      <tr>
-        <td class="ref-cell">N° ${f.ref}</td>
-        <td class="num">${f.cant}</td>
-        <td class="medida-cell">${fmt(f.alto)} × ${fmt(f.ancho)}</td>
-        <td class="chk"><span></span></td>
-      </tr>
-    `;
-
-    const section = (title, meta, rows) => rows.length === 0 ? '' : `
-      <div class="table-block">
-        <div class="section-title"><span>${title}</span><span class="meta-info">${meta}</span></div>
-        <table>
-          <thead><tr><th>N°</th><th class="num">Cant</th><th>Corte alto × ancho (cm)</th><th class="chk">✓</th></tr></thead>
-          <tbody>${rows.map(fila3col).join('')}</tbody>
-        </table>
-      </div>
-    `;
-
-    const totalBases12 = bases12.reduce((s, b) => s + b.cant, 0);
-    const totalBases18 = bases18.reduce((s, b) => s + b.cant, 0);
-    const totalCaras9 = caras9.reduce((s, b) => s + b.cant, 0);
-    const totalC2 = c2v.reduce((s, b) => s + b.cant, 0) + c2h.reduce((s, b) => s + b.cant, 0);
-    const totalC3 = c3v.reduce((s, b) => s + b.cant, 0) + c3h.reduce((s, b) => s + b.cant, 0);
-    const totalSP = spV.reduce((s, b) => s + b.cant, 0) + spH.reduce((s, b) => s + b.cant, 0);
-    const totalPiezas = totalBases12 + totalBases18 + totalCaras9 + totalC2 + totalC3 + totalSP;
+    const totales = [`<span><strong>${tot.frentes}</strong> frentes</span>`];
+    if (tot.b12) totales.push(`<span><strong>${tot.b12}</strong> bases 12 mm</span>`);
+    if (tot.b18) totales.push(`<span><strong>${tot.b18}</strong> bases 18 mm</span>`);
+    if (tot.c9) totales.push(`<span><strong>${tot.c9}</strong> caras 9 mm</span>`);
+    if (tot.f3) totales.push(`<span><strong>${tot.f3}</strong> fajas 3 mm</span>`);
+    if (tot.f5) totales.push(`<span><strong>${tot.f5}</strong> fajas 5 mm</span>`);
+    totales.push(`<span><strong>${tot.b12 + tot.b18 + tot.c9 + tot.f3 + tot.f5}</strong> piezas totales</span>`);
 
     return `<!DOCTYPE html><html lang="es-AR"><head><meta charset="UTF-8"><title>Orden de corte — Mobili</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
 <style>
-  @page { size: A4; margin: 12mm 12mm 14mm; }
+  @page { size: A4; margin: 10mm 10mm 10mm; }
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Poppins',Arial,sans-serif; color:#0A1B4A; font-size:12px; line-height:1.35; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-  .header { display:flex; justify-content:space-between; align-items:center; gap:16px; background:#0F2C6B; color:#fff; border-radius:8px; padding:12px 16px; margin-bottom:14px; }
-  .brand { display:flex; align-items:center; gap:12px; }
-  .brand-icon { width:30px; height:30px; }
-  .brand-name { font-size:24px; font-weight:800; letter-spacing:.04em; line-height:1; color:#fff; }
-  .subtitle { font-size:15px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; margin-top:4px; color:#fff; }
-  .meta { text-align:right; font-size:12px; line-height:1.55; color:#DCE4F5; }
-  .meta strong { color:#fff; font-weight:700; }
-  .meta .cliente { font-size:15px; color:#fff; font-weight:700; }
-  .section-title { font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:#0F2C6B; margin:16px 0 6px; padding:6px 10px; background:#E8EEFA; border-left:5px solid #0F2C6B; border-radius:3px; display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
-  .section-title .meta-info { font-size:12px; color:#0F2C6B; font-weight:600; text-transform:none; letter-spacing:0; white-space:nowrap; }
-  .indice { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; margin-bottom:2px; }
-  .indice-item { border:1px solid #C9D3EA; border-radius:5px; padding:4px 7px; display:grid; grid-template-columns:1fr auto; gap:0 6px; font-variant-numeric:tabular-nums; page-break-inside:avoid; }
-  .indice-item .ref { font-weight:800; color:#0F2C6B; font-size:12px; }
-  .indice-item .cant { font-weight:700; color:#0F2C6B; font-size:12px; text-align:right; }
-  .indice-item .medida { grid-column:1 / -1; font-size:11px; font-weight:600; }
-  .indice-item .plano { grid-column:1 / -1; font-size:9.5px; color:#5B6782; }
-  .tables-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px 14px; }
-  .table-block { page-break-inside:auto; }
-  .full-width { grid-column:1 / -1; }
+  body { font-family:'Poppins',Arial,sans-serif; color:#0A1B4A; font-size:11px; line-height:1.3; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .header { display:flex; justify-content:space-between; align-items:center; gap:16px; background:#0F2C6B; color:#fff; border-radius:7px; padding:9px 14px; margin-bottom:8px; }
+  .brand { display:flex; align-items:center; gap:10px; }
+  .brand-icon { width:26px; height:26px; }
+  .brand-name { font-size:21px; font-weight:800; letter-spacing:.04em; line-height:1; }
+  .subtitle { font-size:13px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; margin-top:3px; }
+  .meta { text-align:right; font-size:11px; line-height:1.5; color:#DCE4F5; }
+  .meta strong { color:#fff; }
+  .meta .cliente { font-size:14px; color:#fff; font-weight:700; }
+  .section-title { font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:#0F2C6B; margin:10px 0 4px; padding:4px 9px; background:#E8EEFA; border-left:5px solid #0F2C6B; border-radius:3px; display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+  .section-title .meta-info { font-size:10.5px; font-weight:600; text-transform:none; letter-spacing:0; white-space:nowrap; }
   table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
   thead { display:table-header-group; }
   tr { page-break-inside:avoid; }
-  th { text-align:left; padding:5px 8px; color:#5B6782; font-weight:700; text-transform:uppercase; font-size:9.5px; letter-spacing:.06em; border-bottom:2px solid #0F2C6B; }
+  th { text-align:left; padding:4px 6px; color:#5B6782; font-weight:700; text-transform:uppercase; font-size:9px; letter-spacing:.05em; border-bottom:2px solid #0F2C6B; white-space:nowrap; }
   th.num, td.num { text-align:center; }
-  td { padding:6px 8px; border-bottom:1px solid #DCE2EE; font-size:13px; }
+  td { padding:4px 6px; border-bottom:1px solid #DCE2EE; font-size:12px; white-space:nowrap; vertical-align:middle; }
   tbody tr:nth-child(even) td { background:#F6F8FC; }
-  td.ref-cell { font-weight:800; color:#0F2C6B; font-size:14px; width:64px; white-space:nowrap; }
-  td.num { width:56px; font-weight:700; font-size:14px; }
-  td.medida-cell { font-size:16px; font-weight:700; letter-spacing:.01em; white-space:nowrap; }
-  td.sub { font-size:14px; font-weight:600; color:#0A1B4A; white-space:nowrap; }
-  td.tag { font-size:11px; font-weight:800; color:#9A5B00; }
-  th.chk, td.chk { width:34px; text-align:center; }
-  td.chk span { display:inline-block; width:15px; height:15px; border:1.5px solid #0F2C6B; border-radius:3px; vertical-align:middle; }
-  .totales { margin-top:16px; border:2px solid #0F2C6B; border-radius:8px; display:flex; flex-wrap:wrap; page-break-inside:avoid; }
-  .totales > span { flex:1 1 0; min-width:90px; padding:8px 10px; text-align:center; font-size:11px; color:#3A4766; border-right:1px solid #C9D3EA; }
+  td.ref-cell { font-weight:800; color:#0F2C6B; font-size:13px; }
+  td.ref-cell .x { font-size:11px; color:#B4232A; margin-left:2px; }
+  td.fin { font-size:11px; color:#3A4766; line-height:1.15; }
+  td.fin small { display:block; font-size:9px; color:#7A84A0; }
+  td.medida-cell { font-size:15px; font-weight:800; }
+  td.num { font-weight:800; font-size:14px; }
+  td.pz { font-size:12px; font-weight:600; }
+  td.pz b { color:#0F2C6B; }
+  td.sub { font-size:12.5px; font-weight:600; }
+  td.tag { font-size:10.5px; font-weight:800; color:#9A5B00; }
+  th.chk, td.chk { width:26px; text-align:center; }
+  td.chk span { display:inline-block; width:14px; height:14px; border:1.5px solid #0F2C6B; border-radius:3px; vertical-align:middle; }
+  .totales { margin-top:10px; border:2px solid #0F2C6B; border-radius:7px; display:flex; page-break-inside:avoid; }
+  .totales > span { flex:1 1 0; padding:5px 8px; text-align:center; font-size:10px; color:#3A4766; border-right:1px solid #C9D3EA; }
   .totales > span:last-child { border-right:none; background:#0F2C6B; color:#fff; }
-  .totales strong { display:block; font-size:20px; font-weight:800; color:#0F2C6B; line-height:1.1; }
+  .totales strong { display:block; font-size:17px; font-weight:800; color:#0F2C6B; line-height:1.1; }
   .totales > span:last-child strong { color:#fff; }
-  .firma { margin-top:22px; display:flex; gap:24px; font-size:11px; color:#5B6782; page-break-inside:avoid; }
-  .firma div { flex:1; border-top:1px solid #8A94AD; padding-top:4px; }
+  .nota { margin-top:6px; font-size:9.5px; color:#5B6782; }
+  .firma { margin-top:16px; display:flex; gap:24px; font-size:10px; color:#5B6782; page-break-inside:avoid; }
+  .firma div { flex:1; border-top:1px solid #8A94AD; padding-top:3px; }
 </style></head><body>
   <div class="header">
-    <div><div class="brand">
-      <svg class="brand-icon" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-        <rect x="6" y="6" width="28" height="28" fill="none" stroke="#FFFFFF" stroke-width="6.5"/>
-      </svg>
+    <div class="brand">
+      <svg class="brand-icon" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="6" width="28" height="28" fill="none" stroke="#FFFFFF" stroke-width="6.5"/></svg>
       <div><div class="brand-name">MOBILI</div><div class="subtitle">Orden de corte</div></div>
-    </div></div>
+    </div>
     <div class="meta">${metaLine.join('')}</div>
   </div>
-  <div class="section-title"><span>Índice de frentes</span><span class="meta-info">${plural(items.length, 'frente', 'frentes')} · ${plural(totalPiezas, 'pieza', 'piezas')} totales</span></div>
-  <div class="indice">${indiceItems}</div>
-  ${bases12.length ? `<div class="table-block full-width"><div class="section-title"><span>Base — MDF 12 mm</span><span class="meta-info">${plural(totalBases12, 'pieza', 'piezas')}</span></div>
-    <table><thead><tr><th>N°</th><th class="num">Cant</th><th>Corte alto × ancho (cm)</th><th class="chk">✓</th></tr></thead><tbody>${bases12.map(fila3col).join('')}</tbody></table></div>` : ''}
-  ${bases18.length ? `<div class="table-block full-width"><div class="section-title"><span>Base — MDF 18 mm (media caña)</span><span class="meta-info">${plural(totalBases18, 'pieza', 'piezas')}</span></div>
-    <table><thead><tr><th>N°</th><th class="num">Cant</th><th>Corte alto × ancho (cm)</th><th class="chk">✓</th></tr></thead><tbody>${bases18.map(fila3col).join('')}</tbody></table></div>` : ''}
-  ${caras9.length ? `<div class="table-block full-width"><div class="section-title"><span>Caras — MDF 9 mm (media caña)</span><span class="meta-info">${plural(totalCaras9, 'pieza', 'piezas')}</span></div>
-    <table><thead><tr><th>N°</th><th class="num">Cant</th><th>Corte alto × ancho (cm)</th><th class="chk">✓</th></tr></thead><tbody>${caras9.map(fila3col).join('')}</tbody></table></div>` : ''}
-  ${fresado.length ? `<div class="table-block full-width"><div class="section-title"><span>Fresado y refilado — media caña</span><span class="meta-info">después de armar las 3 placas</span></div>
-    <table><thead><tr><th>N°</th><th class="num">Frentes</th><th>Moldura interior (fresa)</th><th>Refilado (antes del canto)</th><th class="chk">✓</th></tr></thead><tbody>${fresado.map(f => `<tr><td class="ref-cell">N° ${f.ref}</td><td class="num">${f.cant}</td>${f.sinCentro ? '<td class="tag">SIN CENTRO</td>' : `<td class="sub">${fmt(f.mAlto)} × ${fmt(f.mAncho)}</td>`}<td class="sub">${fmt(f.rAlto)} × ${fmt(f.rAncho)}</td><td class="chk"><span></span></td></tr>`).join('')}</tbody></table></div>` : ''}
-  <div class="tables-grid">
-    ${section('Capa 2 — verticales (3mm)', 'step', c2v)}
-    ${section('Capa 2 — horizontales (3mm)', 'step', c2h)}
-    ${section('Capa 3 — verticales (3mm)', 'step', c3v)}
-    ${section('Capa 3 — horizontales (3mm)', 'step', c3h)}
-    ${section('Fajas placar — verticales (5mm)', 'simple placar', spV)}
-    ${section('Fajas placar — horizontales (5mm)', 'simple placar', spH)}
-  </div>
-  <div class="totales">
-    <span><strong>${items.length}</strong> ${items.length === 1 ? 'frente' : 'frentes'}</span>
-    ${totalBases12 ? `<span><strong>${totalBases12}</strong> ${totalBases12 === 1 ? 'base' : 'bases'} 12mm</span>` : ''}
-    ${totalBases18 ? `<span><strong>${totalBases18}</strong> ${totalBases18 === 1 ? 'base' : 'bases'} 18mm</span>` : ''}
-    ${totalCaras9 ? `<span><strong>${totalCaras9}</strong> caras 9mm</span>` : ''}
-    ${totalC2 ? `<span><strong>${totalC2}</strong> fajas C2 (3mm)</span>` : ''}
-    ${totalC3 ? `<span><strong>${totalC3}</strong> fajas C3 (3mm)</span>` : ''}
-    ${totalSP ? `<span><strong>${totalSP}</strong> fajas placar (5mm)</span>` : ''}
-    <span><strong>${totalPiezas}</strong> piezas totales</span>
-  </div>
+  ${blocks}
+  <div class="totales">${totales.join('')}</div>
+  <p class="nota">Medidas en cm. Corte = final − 0,2 + 2 × refilado. Refilado = medida antes de pegar el canto (1 mm por borde).${mc.length ? ' Media caña: las placas de 18 mm y 9 mm se cortan a la misma medida; menos de 18 cm va sin centro.' : ''}</p>
   <div class="firma"><div>Cortó</div><div>Controló</div><div>Fecha de corte</div></div>
 </body></html>`;
   }
@@ -823,7 +772,7 @@
 
     const bloqueBases = (titulo, meta, arr) => arr.length === 0 ? '' : `
       <div class="table-block"><div class="section-title"><span>${titulo}</span><span class="meta-info">${meta}</span></div>
-      <table><thead><tr><th>N°</th><th class="num">Cant</th><th>Corte alto × ancho (cm)</th><th class="chk">✓</th></tr></thead><tbody>${arr.map(fila3col).join('')}</tbody></table></div>`;
+      <table><thead><tr><th>N°</th><th class="num">Cant</th><th>Corte alto × ancho</th><th class="chk">✓</th></tr></thead><tbody>${arr.map(fila3col).join('')}</tbody></table></div>`;
 
     const bloquesTiras = grupos.map(g => {
       const total = g.tiras.reduce((s, t) => s + t.cant, 0);
@@ -854,49 +803,46 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
 <style>
-  @page { size: A4; margin: 12mm 12mm 14mm; }
+  @page { size: A4; margin: 10mm; }
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Poppins',Arial,sans-serif; color:#0A1B4A; font-size:12px; line-height:1.35; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-  .header { display:flex; justify-content:space-between; align-items:center; gap:16px; background:#0F2C6B; color:#fff; border-radius:8px; padding:12px 16px; margin-bottom:14px; }
-  .brand { display:flex; align-items:center; gap:12px; }
-  .brand-icon { width:30px; height:30px; }
-  .brand-name { font-size:24px; font-weight:800; letter-spacing:.04em; line-height:1; color:#fff; }
-  .subtitle { font-size:15px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; margin-top:4px; color:#fff; }
-  .meta { text-align:right; font-size:12px; line-height:1.55; color:#DCE4F5; }
-  .meta strong { color:#fff; font-weight:700; }
-  .meta .cliente { font-size:15px; color:#fff; font-weight:700; }
-  .section-title { font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:#0F2C6B; margin:16px 0 6px; padding:6px 10px; background:#E8EEFA; border-left:5px solid #0F2C6B; border-radius:3px; display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
-  .section-title .meta-info { font-size:12px; color:#0F2C6B; font-weight:600; text-transform:none; letter-spacing:0; white-space:nowrap; }
-  .indice { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; margin-bottom:2px; }
-  .indice-item { border:1px solid #C9D3EA; border-radius:5px; padding:4px 7px; display:grid; grid-template-columns:1fr auto; gap:0 6px; font-variant-numeric:tabular-nums; page-break-inside:avoid; }
-  .indice-item .ref { font-weight:800; color:#0F2C6B; font-size:12px; }
-  .indice-item .cant { font-weight:700; color:#0F2C6B; font-size:12px; text-align:right; }
-  .indice-item .medida { grid-column:1 / -1; font-size:11px; font-weight:600; }
-  .indice-item .plano { grid-column:1 / -1; font-size:9.5px; color:#5B6782; }
-  .tables-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px 14px; }
-  .table-block { page-break-inside:auto; }
-  .full-width { grid-column:1 / -1; }
+  body { font-family:'Poppins',Arial,sans-serif; color:#0A1B4A; font-size:10.5px; line-height:1.3; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .header { display:flex; justify-content:space-between; align-items:center; gap:16px; background:#0F2C6B; color:#fff; border-radius:7px; padding:9px 14px; margin-bottom:8px; }
+  .brand { display:flex; align-items:center; gap:10px; }
+  .brand-icon { width:26px; height:26px; }
+  .brand-name { font-size:21px; font-weight:800; letter-spacing:.04em; line-height:1; }
+  .subtitle { font-size:13px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; margin-top:3px; }
+  .meta { text-align:right; font-size:11px; line-height:1.5; color:#DCE4F5; }
+  .meta strong { color:#fff; }
+  .meta .cliente { font-size:14px; color:#fff; font-weight:700; }
+  .section-title { font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:#0F2C6B; margin:8px 0 3px; padding:3px 8px; background:#E8EEFA; border-left:4px solid #0F2C6B; border-radius:3px; display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  .section-title .meta-info { font-size:10px; font-weight:600; text-transform:none; letter-spacing:0; white-space:nowrap; }
+  .indice { display:grid; grid-template-columns:repeat(6,1fr); gap:3px; }
+  .indice-item { border:1px solid #C9D3EA; border-radius:4px; padding:2px 5px; display:flex; gap:4px; align-items:baseline; flex-wrap:wrap; font-size:9.5px; font-variant-numeric:tabular-nums; }
+  .indice-item .ref { font-weight:800; color:#0F2C6B; }
+  .indice-item .cant { font-weight:700; color:#B4232A; }
+  .indice-item .medida { font-weight:600; }
+  .indice-item .plano { display:none; }
+  .tables-grid { columns:2; column-gap:14px; }
+  .table-block { break-inside:auto; margin-bottom:2px; }
+  tr { break-inside:avoid; }
+  .section-title { break-after:avoid; }
   table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
-  thead { display:table-header-group; }
-  tr { page-break-inside:avoid; }
-  th { text-align:left; padding:5px 8px; color:#5B6782; font-weight:700; text-transform:uppercase; font-size:9.5px; letter-spacing:.06em; border-bottom:2px solid #0F2C6B; }
+  th { text-align:left; padding:3px 6px; color:#5B6782; font-weight:700; text-transform:uppercase; font-size:8.5px; letter-spacing:.05em; border-bottom:2px solid #0F2C6B; white-space:nowrap; }
   th.num, td.num { text-align:center; }
-  td { padding:6px 8px; border-bottom:1px solid #DCE2EE; font-size:13px; }
+  td { padding:3px 6px; border-bottom:1px solid #DCE2EE; font-size:11.5px; white-space:nowrap; }
   tbody tr:nth-child(even) td { background:#F6F8FC; }
-  td.ref-cell { font-weight:800; color:#0F2C6B; font-size:14px; width:64px; white-space:nowrap; }
-  td.num { width:56px; font-weight:700; font-size:14px; }
-  td.medida-cell { font-size:16px; font-weight:700; letter-spacing:.01em; white-space:nowrap; }
-  td.sub { font-size:14px; font-weight:600; color:#0A1B4A; white-space:nowrap; }
-  td.tag { font-size:11px; font-weight:800; color:#9A5B00; }
-  th.chk, td.chk { width:34px; text-align:center; }
-  td.chk span { display:inline-block; width:15px; height:15px; border:1.5px solid #0F2C6B; border-radius:3px; vertical-align:middle; }
-  .totales { margin-top:16px; border:2px solid #0F2C6B; border-radius:8px; display:flex; flex-wrap:wrap; page-break-inside:avoid; }
-  .totales > span { flex:1 1 0; min-width:90px; padding:8px 10px; text-align:center; font-size:11px; color:#3A4766; border-right:1px solid #C9D3EA; }
+  td.ref-cell { font-weight:800; color:#0F2C6B; }
+  td.num { font-weight:800; }
+  td.medida-cell { font-size:13px; font-weight:800; }
+  th.chk, td.chk { width:22px; text-align:center; }
+  td.chk span { display:inline-block; width:12px; height:12px; border:1.5px solid #0F2C6B; border-radius:3px; vertical-align:middle; }
+  .totales { margin-top:8px; border:2px solid #0F2C6B; border-radius:7px; display:flex; flex-wrap:wrap; break-inside:avoid; }
+  .totales > span { flex:1 1 0; min-width:70px; padding:4px 6px; text-align:center; font-size:9.5px; color:#3A4766; border-right:1px solid #C9D3EA; }
   .totales > span:last-child { border-right:none; background:#0F2C6B; color:#fff; }
-  .totales strong { display:block; font-size:20px; font-weight:800; color:#0F2C6B; line-height:1.1; }
+  .totales strong { display:block; font-size:15px; font-weight:800; color:#0F2C6B; line-height:1.1; }
   .totales > span:last-child strong { color:#fff; }
-  .firma { margin-top:22px; display:flex; gap:24px; font-size:11px; color:#5B6782; page-break-inside:avoid; }
-  .firma div { flex:1; border-top:1px solid #8A94AD; padding-top:4px; }
+  .firma { margin-top:14px; display:flex; gap:24px; font-size:10px; color:#5B6782; break-inside:avoid; }
+  .firma div { flex:1; border-top:1px solid #8A94AD; padding-top:3px; }
 </style></head><body>
   <div class="header">
     <div><div class="brand">
@@ -909,10 +855,12 @@
   </div>
   <div class="section-title"><span>Índice de frentes</span><span class="meta-info">${plural(items.length, 'frente', 'frentes')} · ${plural(totalPiezas, 'pieza', 'piezas')} totales</span></div>
   <div class="indice">${indiceItems}</div>
+  <div class="tables-grid">
   ${bloqueBases('Placas 12 mm — Bases', `${plural(totalBases12, 'pieza', 'piezas')}`, bases12)}
   ${bloqueBases('Placas 18 mm — Bases media caña', `${plural(totalBases18, 'pieza', 'piezas')}`, bases18)}
   ${bloqueBases('Caras 9 mm — Media caña', `${plural(totalCaras9, 'pieza', 'piezas')}`, caras9)}
-  <div class="tables-grid">${bloquesTiras}</div>
+  ${bloquesTiras}
+  </div>
   <div class="totales">${totalesPie.join('')}</div>
   <div class="firma"><div>Cortó</div><div>Controló</div><div>Fecha de corte</div></div>
 </body></html>`;
@@ -1073,7 +1021,7 @@
   });
 
   // ============== MENÚ HAMBURGUESA + BIBLIOTECA DE TRABAJOS ==============
-  const APP_VERSION = 'v1.3';
+  const APP_VERSION = 'v1.4';
   const JOB_KEY = 'mobili-molduras-trabajo-activo-v1';
   const $drawer = $('drawer');
   const $drawerOverlay = $('drawer-overlay');
