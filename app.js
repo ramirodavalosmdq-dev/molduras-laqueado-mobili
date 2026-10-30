@@ -1014,53 +1014,139 @@
     }
   });
 
-  // Importar trabajos (archivos en /trabajos del repo)
-  const $btnImport = $('btn-import');
-  const $importPanel = $('import-panel');
-  $btnImport.addEventListener('click', async () => {
-    if (!$importPanel.hidden) { $importPanel.hidden = true; return; }
-    $importPanel.hidden = false;
-    $importPanel.innerHTML = '<div class="history-empty">Buscando trabajos…</div>';
+  // ============== MENÚ HAMBURGUESA + BIBLIOTECA DE TRABAJOS ==============
+  const APP_VERSION = 'v1.1';
+  const JOB_KEY = 'mobili-molduras-trabajo-activo-v1';
+  const $drawer = $('drawer');
+  const $drawerOverlay = $('drawer-overlay');
+  const $btnMenu = $('btn-menu');
+  const $jobsList = $('jobs-list');
+  let jobsCache = null;
+
+  function openDrawer() {
+    $drawer.classList.add('open');
+    $drawer.setAttribute('aria-hidden', 'false');
+    $drawerOverlay.hidden = false;
+    $btnMenu.setAttribute('aria-expanded', 'true');
+    document.body.classList.add('drawer-lock');
+    const n = loadHistory().length;
+    $('drawer-hist-count').textContent = n ? n + ' frentes' : '';
+    loadJobs();
+  }
+  function closeDrawer() {
+    $drawer.classList.remove('open');
+    $drawer.setAttribute('aria-hidden', 'true');
+    $drawerOverlay.hidden = true;
+    $btnMenu.setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('drawer-lock');
+  }
+  $btnMenu.addEventListener('click', openDrawer);
+  $('btn-menu-close').addEventListener('click', closeDrawer);
+  $drawerOverlay.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $drawer.classList.contains('open')) closeDrawer(); });
+  $('drawer-version').textContent = `Molduras Laqueado · ${APP_VERSION}`;
+
+  function activeJob() { try { return localStorage.getItem(JOB_KEY) || ''; } catch (e) { return ''; } }
+
+  function renderJobs() {
+    if (!jobsCache) return;
+    const act = activeJob();
+    $jobsList.innerHTML = jobsCache.length ? jobsCache.map(t => `
+      <div class="job-card${t.archivo === act ? ' active' : ''}">
+        <div class="job-name">${escapeHtml(t.nombre)}</div>
+        <div class="job-meta">
+          <span class="job-tag">${escapeHtml(MODEL_LABELS[t.modelo] || t.modelo)}</span>
+          <span>${t.frentes} frentes${t.fecha ? ' · ' + escapeHtml(t.fecha) : ''}</span>
+          ${t.archivo === act ? '<span>· cargado</span>' : ''}
+        </div>
+        <div class="job-actions">
+          <button type="button" class="primary" data-job="${escapeHtml(t.archivo)}">${t.archivo === act ? 'Volver a cargar' : 'Cargar'}</button>
+        </div>
+      </div>`).join('') : '<div class="drawer-hint">Todavía no hay trabajos en la biblioteca.</div>';
+  }
+
+  async function loadJobs() {
+    if (jobsCache) renderJobs();
     try {
-      const idx = await fetch('./trabajos/index.json', { cache: 'no-cache' }).then(r => r.json());
-      $importPanel.innerHTML = idx.map(t => `
-        <div class="history-item">
-          <div class="info">
-            <div class="dims">${escapeHtml(t.nombre)}</div>
-            <div class="meta"><span class="model-tag">${escapeHtml(MODEL_LABELS[t.modelo] || t.modelo)}</span><span>${t.frentes} frentes · ${escapeHtml(t.fecha || '')}</span></div>
-          </div>
-          <button data-file="${escapeHtml(t.archivo)}" type="button">Importar</button>
-        </div>`).join('') || '<div class="history-empty">No hay trabajos para importar.</div>';
+      jobsCache = await fetch('./trabajos/index.json', { cache: 'no-cache' }).then(r => { if (!r.ok) throw 0; return r.json(); });
+      renderJobs();
     } catch (e) {
-      $importPanel.innerHTML = '<div class="history-empty">No se pudo leer la lista de trabajos. Revisá la conexión.</div>';
+      if (!jobsCache) $jobsList.innerHTML = '<div class="drawer-hint">No se pudo leer la biblioteca. Revisá la conexión.</div>';
     }
-  });
-  $importPanel.addEventListener('click', async (e) => {
-    const btn = e.target.closest('button[data-file]');
+  }
+
+  async function importJob(file) {
+    const job = await fetch('./trabajos/' + file, { cache: 'no-cache' }).then(r => { if (!r.ok) throw 0; return r.json(); });
+    const prev = loadHistory();
+    if (prev.length && !confirm(`Esto reemplaza el historial actual (${prev.length} frentes) por "${job.nombre}". ¿Seguir?`)) return false;
+    const now = Date.now();
+    const list = job.frentes.map((f, i) => ({
+      model: job.modelo, nro: f.nro, H: f.alto, A: f.ancho, cant: f.cant,
+      r: f.r != null ? f.r : (job.refilado != null ? job.refilado : 1),
+      marco: job.marco, surco: job.surco, c2: job.c2, c3: job.c3, faja: job.faja,
+      cliente: job.cliente || '', orden: job.orden || '', t: now - i,
+    }));
+    saveHistory(list.slice(0, MAX_HISTORY));
+    try { localStorage.setItem(JOB_KEY, file); } catch (e) { /* ignore */ }
+    $cliente.value = job.cliente || '';
+    $orden.value = job.orden || '';
+    historyFilter = 'all';
+    $historyFilters.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('active', c.dataset.filter === 'all'));
+    saveConfig();
+    renderHistory();
+    updateMeta();
+    showToast(`Cargado: ${list.length} frentes`);
+    return true;
+  }
+
+  $jobsList.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-job]');
     if (!btn) return;
     try {
-      const job = await fetch('./trabajos/' + btn.dataset.file, { cache: 'no-cache' }).then(r => r.json());
-      const prev = loadHistory();
-      if (prev.length && !confirm(`Esto reemplaza el historial actual (${prev.length} frentes) por "${job.nombre}". ¿Seguir?`)) return;
-      const now = Date.now();
-      const list = job.frentes.map((f, i) => ({
-        model: job.modelo, nro: f.nro, H: f.alto, A: f.ancho, cant: f.cant,
-        r: f.r != null ? f.r : (job.refilado != null ? job.refilado : 1),
-        marco: job.marco, surco: job.surco, c2: job.c2, c3: job.c3, faja: job.faja,
-        cliente: job.cliente || '', orden: job.orden || '', t: now - i,
-      }));
-      saveHistory(list.slice(0, MAX_HISTORY));
-      $cliente.value = job.cliente || '';
-      $orden.value = job.orden || '';
-      historyFilter = 'all';
-      $historyFilters.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('active', c.dataset.filter === 'all'));
-      saveConfig();
-      renderHistory();
-      updateMeta();
-      $importPanel.hidden = true;
-      showToast(`Importados ${list.length} frentes`);
-    } catch (err) {
-      showToast('No se pudo importar el trabajo');
+      if (await importJob(btn.dataset.job)) { closeDrawer(); goTo('historial'); }
+    } catch (err) { showToast('No se pudo cargar el trabajo'); }
+  });
+
+  function goTo(where) {
+    const el = $(where === 'config' ? 'sec-config' : 'sec-historial');
+    el.open = true;
+    setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  }
+
+  $drawer.addEventListener('click', async (e) => {
+    const go = e.target.closest('[data-go]');
+    if (go) { closeDrawer(); goTo(go.dataset.go); return; }
+    const act = e.target.closest('[data-act]');
+    if (!act) return;
+    const a = act.dataset.act;
+    if (a === 'print-batch' || a === 'print-measure') {
+      closeDrawer();
+      $(a === 'print-batch' ? 'btn-print-batch' : 'btn-print-batch-measure').click();
+    } else if (a === 'copy-list') {
+      const list = loadHistory();
+      if (!list.length) { showToast('El historial está vacío'); return; }
+      const head = [$cliente.value.trim(), $orden.value.trim() && 'Orden ' + $orden.value.trim()].filter(Boolean).join(' · ');
+      const txt = (head ? head + '\n' : '') + list.map((it, i) => {
+        const cant = it.cant >= 1 ? it.cant : 1;
+        return `${it.nro != null ? 'N° ' + it.nro : '#' + (i + 1)} · ${MODEL_LABELS[it.model] || it.model} · ${fmt(it.H)} × ${fmt(it.A)} cm${cant > 1 ? ' ×' + cant : ''}`;
+      }).join('\n');
+      try { await navigator.clipboard.writeText(txt); showToast('Lista copiada'); }
+      catch (err) { showToast('No se pudo copiar'); }
+    } else if (a === 'formulas') {
+      const f = $('formulas'); f.hidden = !f.hidden;
+    } else if (a === 'update') {
+      showToast('Actualizando…');
+      try {
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+        }
+        if (window.caches) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+      } catch (err) { /* ignore */ }
+      setTimeout(() => location.reload(), 400);
     }
   });
 
