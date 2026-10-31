@@ -1,0 +1,28 @@
+{
+ "nombre": "Casa Astor · Placares",
+ "cliente": "Casa Astor - Placares (sin canto, sin pintura)",
+ "orden": "",
+ "modelo": "simple-placar",
+ "refilado": 1,
+ "faja": 8,
+ "espBase": 15,
+ "espFaja": 3,
+ "canto": 0,
+ "nota": "Puertas de placar y bauleras. Solo se fabrica la moldura y va a obra sin lijar ni pintar. Sin canto: corte = final + 2 × refilado. Base MDF 15 mm, recuadro MDF 3 mm de 8 cm final; verticales enteras y horizontales entre medio.",
+ "frentes": [
+  {
+   "nro": 1,
+   "tipo": "Puerta",
+   "alto": 203.5,
+   "ancho": 55.5,
+   "cant": 8
+  },
+  {
+   "nro": 2,
+   "tipo": "Baulera",
+   "alto": 61.6,
+   "ancho": 55.5,
+   "cant": 8
+  }
+ ]
+}

@@ -8,6 +8,8 @@
     marcoMC: 5.5,
     surcoMC: 3.5,
     fajaSP: 8,
+    espBaseSP: 12,
+    espFajaSP: 5,
   };
   const STORAGE_KEY = 'mobili-molduras-historial-v1';
   const CONFIG_KEY = 'mobili-molduras-config-v1';
@@ -32,6 +34,9 @@
   const $marcoMC = $('marco-mc');
   const $surcoMC = $('surco-mc');
   const $fajaSP = $('faja-sp');
+  const $espBaseSP = $('esp-base-sp');
+  const $espFajaSP = $('esp-faja-sp');
+  const $cantoOn = $('canto-on');
   const $cliente = $('cliente');
   const $orden = $('orden');
   const $error = $('error');
@@ -85,6 +90,9 @@
       if (typeof cfg.marcoMC === 'number') $marcoMC.value = cfg.marcoMC;
       if (typeof cfg.surcoMC === 'number') $surcoMC.value = cfg.surcoMC;
       if (typeof cfg.fajaSP === 'number') $fajaSP.value = cfg.fajaSP;
+      if (typeof cfg.espBaseSP === 'number') $espBaseSP.value = cfg.espBaseSP;
+      if (typeof cfg.espFajaSP === 'number') $espFajaSP.value = cfg.espFajaSP;
+      if (typeof cfg.canto === 'boolean') $cantoOn.checked = cfg.canto;
       if (typeof cfg.cliente === 'string') $cliente.value = cfg.cliente;
       if (typeof cfg.orden === 'string') $orden.value = cfg.orden;
     } catch (e) { /* ignore */ }
@@ -99,6 +107,9 @@
         marcoMC: parseFloat($marcoMC.value),
         surcoMC: parseFloat($surcoMC.value),
         fajaSP: parseFloat($fajaSP.value),
+        espBaseSP: parseFloat($espBaseSP.value),
+        espFajaSP: parseFloat($espFajaSP.value),
+        canto: $cantoOn.checked,
         cliente: $cliente.value,
         orden: $orden.value,
       }));
@@ -157,7 +168,7 @@
       return `
         <div class="history-item">
           <div class="info">
-            <div class="dims">${item.nro != null ? '<span class="nro">N° ' + escapeHtml(String(item.nro)) + '</span> ' : ''}${dimsStr}</div>
+            <div class="dims">${item.nro != null ? '<span class="nro">N° ' + escapeHtml(String(item.nro)) + '</span> ' : ''}${item.tipo ? '<span class="nro">' + escapeHtml(item.tipo) + '</span> ' : ''}${dimsStr}</div>
             ${item.plano ? `<div class="plano-ref">Plano: ${escapeHtml(item.plano)}</div>` : ''}
             <div class="meta">
               <span class="model-tag">${escapeHtml(modelLabel)}</span>
@@ -191,7 +202,9 @@
   //   FAJA al corte (ancho) = FAJA_FINAL - 0,1 + r (solo 1 borde exterior)
   //   HORIZONTAL largo = ancho_bruto_frente - 2 × faja_al_corte
 
-  const CANTO = 0.1; // 1 mm por borde en cm
+  const CANTO_STD = 0.1; // 1 mm por borde en cm
+  let CANTO = CANTO_STD; // vivo: depende de 'Lleva canto'
+  const cantoOf = (it) => (it && it.canto != null) ? it.canto : CANTO_STD;
 
   function computeFrenteBase(H, A, r) {
     // Medida al corte del frente completo
@@ -276,6 +289,7 @@
 
   // ============== COMPUTE ==============
   function compute() {
+    CANTO = $cantoOn.checked ? CANTO_STD : 0;
     updateMeta();
     const common = validateCommon();
     if (!common.ok) {
@@ -406,6 +420,7 @@
   // ============== RENDER SIMPLE PLACAR ==============
   function renderSimplePlacar(H, A, cant, r) {
     const faja = parseFloat($fajaSP.value);
+    const eB = parseFloat($espBaseSP.value) || 12, eF = parseFloat($espFajaSP.value) || 5;
     if (isNaN(faja) || faja <= 0) {
       showError('Ingresá un valor válido en el ancho de faja.');
       return;
@@ -441,13 +456,13 @@
     </tr>`;
     $tbody.innerHTML = `
       <tr class="group-head"><td colspan="5">Base</td></tr>
-      <tr><td>Placa base</td><td class="num">${nBase}</td><td class="num">12 mm</td><td class="num">${fmt(d.altoBruto)}</td><td class="num">${fmt(d.anchoBruto)}</td></tr>
+      <tr><td>Placa base</td><td class="num">${nBase}</td><td class="num">${eB} mm</td><td class="num">${fmt(d.altoBruto)}</td><td class="num">${fmt(d.anchoBruto)}</td></tr>
       <tr class="group-head"><td colspan="5">Moldura — fajas corte ${fmt(d.fajaBruto)} cm (final ${fmt(faja)} cm)</td></tr>
-      <tr><td>Verticales</td><td class="num">${nFaja}</td><td class="num">5 mm</td><td class="num">${fmt(d.altoBruto)}</td><td class="num">${fmt(d.fajaBruto)}</td></tr>
-      <tr><td>Horizontales</td><td class="num">${nFaja}</td><td class="num">5 mm</td><td class="num">${fmt(d.fajaBruto)}</td><td class="num">${fmt(d.fajaHoriz)}</td></tr>
+      <tr><td>Verticales</td><td class="num">${nFaja}</td><td class="num">${eF} mm</td><td class="num">${fmt(d.altoBruto)}</td><td class="num">${fmt(d.fajaBruto)}</td></tr>
+      <tr><td>Horizontales</td><td class="num">${nFaja}</td><td class="num">${eF} mm</td><td class="num">${fmt(d.fajaBruto)}</td><td class="num">${fmt(d.fajaHoriz)}</td></tr>
     `;
 
-    currentResult = { model: 'simple-placar', H, A, r, faja, cant, ...d };
+    currentResult = { model: 'simple-placar', H, A, r, faja, espBase: eB, espFaja: eF, cant, ...d };
   }
 
   // ============== BUILD TEXT (para copiar/compartir) ==============
@@ -509,11 +524,11 @@
         `Medida refilado (antes del canto): ${fmt(r.refiladoAlto)} × ${fmt(r.refiladoAncho)} cm`,
         ``,
         `BASE`,
-        `  ${r.cant} × 12 mm — ${fmt(r.altoBruto)} × ${fmt(r.anchoBruto)} cm`,
+        `  ${r.cant} × ${r.espBase} mm — ${fmt(r.altoBruto)} × ${fmt(r.anchoBruto)} cm`,
         ``,
         `MOLDURA — fajas corte ${fmt(r.fajaBruto)} cm (final ${fmt(r.faja)} cm)`,
-        `  ${nF} × 5 mm — ${fmt(r.altoBruto)} × ${fmt(r.fajaBruto)} cm (verticales)`,
-        `  ${nF} × 5 mm — ${fmt(r.fajaBruto)} × ${fmt(r.fajaHoriz)} cm (horizontales)`,
+        `  ${nF} × ${r.espFaja} mm — ${fmt(r.altoBruto)} × ${fmt(r.fajaBruto)} cm (verticales)`,
+        `  ${nF} × ${r.espFaja} mm — ${fmt(r.fajaBruto)} × ${fmt(r.fajaHoriz)} cm (horizontales)`,
       );
     }
     return lines.join('\n');
@@ -586,9 +601,11 @@
     const items = list.map((item, i) => {
       const r = (item.r != null) ? item.r : 1;
       const cant = (item.cant != null && item.cant >= 1) ? item.cant : 1;
-      const altoBruto = item.H - 2 * CANTO + 2 * r;
-      const anchoBruto = item.A - 2 * CANTO + 2 * r;
-      return { ...item, ref: item.nro != null ? item.nro : i + 1, r, cant, altoBruto, anchoBruto };
+      const c = cantoOf(item);
+      const altoBruto = item.H - 2 * c + 2 * r;
+      const anchoBruto = item.A - 2 * c + 2 * r;
+      return { ...item, ref: item.nro != null ? item.nro : i + 1, r, cant, c, altoBruto, anchoBruto,
+        eB: item.espBase || DEFAULTS.espBaseSP, eF: item.espFaja || DEFAULTS.espFajaSP };
     }).sort((a, b) => (a.nro != null && b.nro != null) ? a.nro - b.nro : 0);
 
     const metaLine = [];
@@ -599,9 +616,9 @@
     const mc = items.filter(it => it.model === 'media-cana');
     const st = items.filter(it => it.model === 'step');
     const sp = items.filter(it => it.model === 'simple-placar');
-    const tot = { frentes: 0, b12: 0, b18: 0, c9: 0, f3: 0, f5: 0 };
+    const tot = { frentes: 0, b12: 0, b18: 0, c9: 0, f3: 0, bases: {}, fajas: {} };
     const chk = '<td class="chk"><span></span></td>';
-    const nroCell = (f) => `<td class="ref-cell">N° ${f.ref}${f.cant > 1 ? ` <b class="x">×${f.cant}</b>` : ''}</td>`;
+    const nroCell = (f) => `<td class="ref-cell">N° ${f.ref}${f.cant > 1 ? ` <b class="x">×${f.cant}</b>` : ''}${f.tipo ? `<small class="tipo">${esc(f.tipo)}</small>` : ''}</td>`;
     const finalCell = (f) => `<td class="fin">${fmt(f.H)} × ${fmt(f.A)}${f.plano ? `<small>plano ${esc(f.plano)}</small>` : ''}</td>`;
     const corteCell = (f) => `<td class="medida-cell">${fmt(f.altoBruto)} × ${fmt(f.anchoBruto)}</td>`;
     const piece = (n, alto, ancho) => `<td class="pz"><b>${n}</b> × ${fmt(alto)} × ${fmt(ancho)}</td>`;
@@ -613,7 +630,7 @@
         const mA = f.H - desc, mB = f.A - desc;
         const sin = mA <= 0 || mB <= 0;
         tot.frentes += f.cant; tot.b18 += f.cant; tot.c9 += 2 * f.cant;
-        return `<tr>${nroCell(f)}${finalCell(f)}${corteCell(f)}<td class="num">${f.cant}</td><td class="num">${2 * f.cant}</td>${sin ? '<td class="tag">SIN CENTRO</td>' : `<td class="sub">${fmt(mA)} × ${fmt(mB)}</td>`}<td class="sub">${fmt(f.H - 2 * CANTO)} × ${fmt(f.A - 2 * CANTO)}</td>${chk}</tr>`;
+        return `<tr>${nroCell(f)}${finalCell(f)}${corteCell(f)}<td class="num">${f.cant}</td><td class="num">${2 * f.cant}</td>${sin ? '<td class="tag">SIN CENTRO</td>' : `<td class="sub">${fmt(mA)} × ${fmt(mB)}</td>`}<td class="sub">${fmt(f.H - 2 * f.c)} × ${fmt(f.A - 2 * f.c)}</td>${chk}</tr>`;
       }).join('');
       blocks += `<div class="section-title"><span>Media caña — 3 placas iguales por frente</span><span class="meta-info">corte en cm, alto × ancho</span></div>
       <table><thead><tr><th>N°</th><th>Final · plano</th><th>Corte</th><th class="num">18 mm</th><th class="num">9 mm</th><th>Moldura int.</th><th>Refilado</th><th class="chk">✓</th></tr></thead><tbody>${rows}</tbody></table>`;
@@ -621,21 +638,27 @@
     if (st.length) {
       const rows = st.map(f => {
         const c2 = f.c2 || DEFAULTS.faja2, c3 = f.c3 || DEFAULTS.faja3;
-        const c2b = c2 - CANTO + f.r, c3b = c3 - CANTO + f.r;
+        const c2b = c2 - f.c + f.r, c3b = c3 - f.c + f.r;
         tot.frentes += f.cant; tot.b12 += f.cant; tot.f3 += 8 * f.cant;
         return `<tr>${nroCell(f)}${finalCell(f)}${corteCell(f)}${piece(2 * f.cant, f.altoBruto, c2b)}${piece(2 * f.cant, c2b, f.anchoBruto - 2 * c2b)}${piece(2 * f.cant, f.altoBruto, c3b)}${piece(2 * f.cant, c3b, f.anchoBruto - 2 * c3b)}${chk}</tr>`;
       }).join('');
       blocks += `<div class="section-title"><span>Step — base 12 mm + fajas 3 mm</span><span class="meta-info">fajas: cant × alto × ancho</span></div>
       <table><thead><tr><th>N°</th><th>Final · plano</th><th>Base 12 mm</th><th>C2 vert.</th><th>C2 horiz.</th><th>C3 vert.</th><th>C3 horiz.</th><th class="chk">✓</th></tr></thead><tbody>${rows}</tbody></table>`;
     }
-    if (sp.length) {
-      const rows = sp.map(f => {
-        const fb = (f.faja || DEFAULTS.fajaSP) - CANTO + f.r;
-        tot.frentes += f.cant; tot.b12 += f.cant; tot.f5 += 4 * f.cant;
-        return `<tr>${nroCell(f)}${finalCell(f)}${corteCell(f)}${piece(2 * f.cant, f.altoBruto, fb)}${piece(2 * f.cant, fb, f.anchoBruto - 2 * fb)}<td class="sub">${fmt(f.H - 2 * CANTO)} × ${fmt(f.A - 2 * CANTO)}</td>${chk}</tr>`;
+    const combos = [...new Set(sp.map(f => f.eB + '/' + f.eF))];
+    for (const combo of combos) {
+      const grp = sp.filter(f => f.eB + '/' + f.eF === combo);
+      const [eB, eF] = combo.split('/');
+      const sinCanto = grp.every(f => f.c === 0);
+      const rows = grp.map(f => {
+        const fb = (f.faja || DEFAULTS.fajaSP) - f.c + f.r;
+        tot.frentes += f.cant;
+        tot.bases[eB] = (tot.bases[eB] || 0) + f.cant;
+        tot.fajas[eF] = (tot.fajas[eF] || 0) + 4 * f.cant;
+        return `<tr>${nroCell(f)}${finalCell(f)}${corteCell(f)}${piece(2 * f.cant, f.altoBruto, fb)}${piece(2 * f.cant, fb, f.anchoBruto - 2 * fb)}<td class="sub">${fmt(f.H - 2 * f.c)} × ${fmt(f.A - 2 * f.c)}</td>${chk}</tr>`;
       }).join('');
-      blocks += `<div class="section-title"><span>Simple placar — base 12 mm + fajas 5 mm</span><span class="meta-info">fajas: cant × alto × ancho</span></div>
-      <table><thead><tr><th>N°</th><th>Final · plano</th><th>Base 12 mm</th><th>Faja vert.</th><th>Faja horiz.</th><th>Refilado</th><th class="chk">✓</th></tr></thead><tbody>${rows}</tbody></table>`;
+      blocks += `<div class="section-title"><span>Simple placar — base ${eB} mm + fajas ${eF} mm${sinCanto ? ' · SIN CANTO' : ''}</span><span class="meta-info">verticales enteras, horizontales entre medio</span></div>
+      <table><thead><tr><th>N°</th><th>Final · plano</th><th>Base ${eB} mm</th><th>Faja vert.</th><th>Faja horiz.</th><th>Refilado</th><th class="chk">✓</th></tr></thead><tbody>${rows}</tbody></table>`;
     }
 
     const totales = [`<span><strong>${tot.frentes}</strong> frentes</span>`];
@@ -643,8 +666,10 @@
     if (tot.b18) totales.push(`<span><strong>${tot.b18}</strong> bases 18 mm</span>`);
     if (tot.c9) totales.push(`<span><strong>${tot.c9}</strong> caras 9 mm</span>`);
     if (tot.f3) totales.push(`<span><strong>${tot.f3}</strong> fajas 3 mm</span>`);
-    if (tot.f5) totales.push(`<span><strong>${tot.f5}</strong> fajas 5 mm</span>`);
-    totales.push(`<span><strong>${tot.b12 + tot.b18 + tot.c9 + tot.f3 + tot.f5}</strong> piezas totales</span>`);
+    for (const [e, n] of Object.entries(tot.bases)) totales.push(`<span><strong>${n}</strong> bases ${e} mm</span>`);
+    for (const [e, n] of Object.entries(tot.fajas)) totales.push(`<span><strong>${n}</strong> fajas ${e} mm</span>`);
+    const sumObj = (o) => Object.values(o).reduce((a, b) => a + b, 0);
+    totales.push(`<span><strong>${tot.b12 + tot.b18 + tot.c9 + tot.f3 + sumObj(tot.bases) + sumObj(tot.fajas)}</strong> piezas totales</span>`);
 
     return `<!DOCTYPE html><html lang="es-AR"><head><meta charset="UTF-8"><title>Orden de corte — Mobili</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -672,6 +697,7 @@
   tbody tr:nth-child(even) td { background:#F6F8FC; }
   td.ref-cell { font-weight:800; color:#0F2C6B; font-size:13px; }
   td.ref-cell .x { font-size:11px; color:#B4232A; margin-left:2px; }
+  td.ref-cell .tipo { display:block; font-size:9.5px; font-weight:700; color:#5B6782; text-transform:uppercase; letter-spacing:.04em; }
   td.fin { font-size:11px; color:#3A4766; line-height:1.15; }
   td.fin small { display:block; font-size:9px; color:#7A84A0; }
   td.medida-cell { font-size:15px; font-weight:800; }
@@ -700,7 +726,7 @@
   </div>
   ${blocks}
   <div class="totales">${totales.join('')}</div>
-  <p class="nota">Medidas en cm. Corte = final − 0,2 + 2 × refilado. Refilado = medida antes de pegar el canto (1 mm por borde).${mc.length ? ' Media caña: las placas de 18 mm y 9 mm se cortan a la misma medida; menos de 18 cm va sin centro.' : ''}</p>
+  <p class="nota">Medidas en cm. Corte = final − canto + 2 × refilado por lado. Refilado = medida antes de pegar el canto (1 mm por borde; sin canto, igual a la final).${mc.length ? ' Media caña: las placas de 18 mm y 9 mm se cortan a la misma medida; menos de 18 cm va sin centro.' : ''}</p>
   <div class="firma"><div>Cortó</div><div>Controló</div><div>Fecha de corte</div></div>
 </body></html>`;
   }
@@ -713,18 +739,21 @@
     const items = list.map((item, i) => {
       const r = (item.r != null) ? item.r : 1;
       const cant = (item.cant != null && item.cant >= 1) ? item.cant : 1;
-      const altoBruto = item.H - 2 * CANTO + 2 * r;
-      const anchoBruto = item.A - 2 * CANTO + 2 * r;
-      return { ...item, ref: item.nro != null ? item.nro : i + 1, r, cant, altoBruto, anchoBruto };
+      const c = cantoOf(item);
+      const altoBruto = item.H - 2 * c + 2 * r;
+      const anchoBruto = item.A - 2 * c + 2 * r;
+      return { ...item, ref: item.nro != null ? item.nro : i + 1, r, cant, c, altoBruto, anchoBruto,
+        eB: item.espBase || DEFAULTS.espBaseSP, eF: item.espFaja || DEFAULTS.espFajaSP };
     }).sort((a, b) => (a.nro != null && b.nro != null) ? a.nro - b.nro : 0);
 
     const bases12 = [], bases18 = [], caras9 = [];
+    const basesOtras = new Map(); // espesor (mm) → bases de placar con espesor distinto de 12
     const tirasPorAncho = new Map(); // ancho de corte → { ancho, anchoFinal, espesor, tiras }
 
     for (const it of items) {
       if (it.model === 'step') {
         const c2 = it.c2 || 6.3, c3 = it.c3 || 6;
-        const c2b = c2 - CANTO + it.r, c3b = c3 - CANTO + it.r;
+        const c2b = c2 - it.c + it.r, c3b = c3 - it.c + it.r;
         const c2hz = it.anchoBruto - 2 * c2b;
         const c3hz = it.anchoBruto - 2 * c3b;
         bases12.push({ ref: it.ref, cant: it.cant, alto: it.altoBruto, ancho: it.anchoBruto });
@@ -738,11 +767,12 @@
         tirasPorAncho.get(k3).tiras.push({ ref: it.ref, cant: it.cant * 2, largo: c3hz });
       } else if (it.model === 'simple-placar') {
         const f = it.faja || 8;
-        const fb = f - CANTO + it.r;
+        const fb = f - it.c + it.r;
         const fhz = it.anchoBruto - 2 * fb;
-        bases12.push({ ref: it.ref, cant: it.cant, alto: it.altoBruto, ancho: it.anchoBruto });
-        const k = `5mm-${fb.toFixed(2)}`;
-        if (!tirasPorAncho.has(k)) tirasPorAncho.set(k, { ancho: fb, anchoFinal: f, espesor: '5 mm', tiras: [] });
+        if (it.eB === 12) bases12.push({ ref: it.ref, cant: it.cant, alto: it.altoBruto, ancho: it.anchoBruto });
+        else { if (!basesOtras.has(it.eB)) basesOtras.set(it.eB, []); basesOtras.get(it.eB).push({ ref: it.ref, cant: it.cant, alto: it.altoBruto, ancho: it.anchoBruto }); }
+        const k = `${it.eF}mm-${fb.toFixed(2)}`;
+        if (!tirasPorAncho.has(k)) tirasPorAncho.set(k, { ancho: fb, anchoFinal: f, espesor: it.eF + ' mm', tiras: [] });
         tirasPorAncho.get(k).tiras.push({ ref: it.ref, cant: it.cant * 2, largo: it.altoBruto });
         tirasPorAncho.get(k).tiras.push({ ref: it.ref, cant: it.cant * 2, largo: fhz });
       } else if (it.model === 'media-cana') {
@@ -786,13 +816,16 @@
     const totalBases18 = bases18.reduce((s, b) => s + b.cant, 0);
     const totalCaras9 = caras9.reduce((s, b) => s + b.cant, 0);
     const totalTiras = grupos.reduce((s, g) => s + g.tiras.reduce((ss, t) => ss + t.cant, 0), 0);
-    const totalPiezas = totalBases12 + totalBases18 + totalCaras9 + totalTiras;
+    const totalOtras = [...basesOtras.values()].reduce((s, arr) => s + arr.reduce((ss, b) => ss + b.cant, 0), 0);
+    const totalPiezas = totalBases12 + totalBases18 + totalCaras9 + totalTiras + totalOtras;
 
     const totalesPie = [];
-    totalesPie.push(`<span><strong>${items.length}</strong> ${items.length === 1 ? 'frente' : 'frentes'}</span>`);
+    const nFrentes = items.reduce((s, it) => s + it.cant, 0);
+    totalesPie.push(`<span><strong>${nFrentes}</strong> ${nFrentes === 1 ? 'frente' : 'frentes'}</span>`);
     if (totalBases12) totalesPie.push(`<span><strong>${totalBases12}</strong> ${totalBases12 === 1 ? 'base' : 'bases'} 12mm</span>`);
     if (totalBases18) totalesPie.push(`<span><strong>${totalBases18}</strong> ${totalBases18 === 1 ? 'base' : 'bases'} 18mm</span>`);
     if (totalCaras9) totalesPie.push(`<span><strong>${totalCaras9}</strong> caras 9mm</span>`);
+    for (const [e, arr] of basesOtras) { const n = arr.reduce((s, b) => s + b.cant, 0); totalesPie.push(`<span><strong>${n}</strong> bases ${e}mm</span>`); }
     for (const g of grupos) {
       const t = g.tiras.reduce((s, x) => s + x.cant, 0);
       totalesPie.push(`<span><strong>${t}</strong> tiras ${fmt(g.ancho)}cm</span>`);
@@ -853,10 +886,11 @@
     </div></div>
     <div class="meta">${metaLine.join('')}</div>
   </div>
-  <div class="section-title"><span>Índice de frentes</span><span class="meta-info">${plural(items.length, 'frente', 'frentes')} · ${plural(totalPiezas, 'pieza', 'piezas')} totales</span></div>
+  <div class="section-title"><span>Índice de frentes</span><span class="meta-info">${plural(nFrentes, 'frente', 'frentes')} · ${plural(totalPiezas, 'pieza', 'piezas')} totales</span></div>
   <div class="indice">${indiceItems}</div>
   <div class="tables-grid">
   ${bloqueBases('Placas 12 mm — Bases', `${plural(totalBases12, 'pieza', 'piezas')}`, bases12)}
+  ${[...basesOtras].map(([e, arr]) => bloqueBases(`Placas ${e} mm — Bases placar`, plural(arr.reduce((s, b) => s + b.cant, 0), 'pieza', 'piezas'), arr)).join('')}
   ${bloqueBases('Placas 18 mm — Bases media caña', `${plural(totalBases18, 'pieza', 'piezas')}`, bases18)}
   ${bloqueBases('Caras 9 mm — Media caña', `${plural(totalCaras9, 'pieza', 'piezas')}`, caras9)}
   ${bloquesTiras}
@@ -890,7 +924,8 @@
   });
 
   // Inputs
-  [$alto, $ancho, $cantidad, $refilado, $faja2, $faja3, $marcoMC, $surcoMC, $fajaSP].forEach(el => {
+  [$alto, $ancho, $cantidad, $refilado, $faja2, $faja3, $marcoMC, $surcoMC, $fajaSP, $espBaseSP, $espFajaSP, $cantoOn].forEach(el => {
+    el.addEventListener('change', () => { compute(); saveConfig(); });
     el.addEventListener('input', () => {
       // Si cambia el refilado general, actualiza también el chip del frente (si estaba sincronizado)
       if (el === $refilado) {
@@ -965,10 +1000,11 @@
       t: Date.now(),
     };
     // Guardar params específicos del modelo
-    if (loadedRef && loadedRef.nro != null) { item.nro = loadedRef.nro; if (loadedRef.plano) item.plano = loadedRef.plano; }
+    if (loadedRef && loadedRef.nro != null) { item.nro = loadedRef.nro; }
+    item.canto = CANTO;
     if (r.model === 'step') { item.c2 = r.c2; item.c3 = r.c3; }
     else if (r.model === 'media-cana') { item.marco = r.marco; item.surco = r.surco; }
-    else if (r.model === 'simple-placar') { item.faja = r.faja; }
+    else if (r.model === 'simple-placar') { item.faja = r.faja; item.espBase = r.espBase; item.espFaja = r.espFaja; }
 
     const same = item.nro != null ? list.findIndex(x => x.nro === item.nro) : -1;
     if (same >= 0) {
@@ -994,7 +1030,7 @@
     if (isNaN(idx) || !list[idx]) return;
     if (btn.dataset.act === 'load') {
       const item = list[idx];
-      loadedRef = item.nro != null ? { nro: item.nro, plano: item.plano || '' } : null;
+      loadedRef = item.nro != null ? { nro: item.nro, plano: item.plano || item.tipo || '' } : null;
       setModel(item.model);
       $alto.value = item.H;
       $ancho.value = item.A;
@@ -1006,6 +1042,9 @@
       if (item.marco != null) $marcoMC.value = item.marco;
       if (item.surco != null) $surcoMC.value = item.surco;
       if (item.faja != null) $fajaSP.value = item.faja;
+      $espBaseSP.value = item.espBase != null ? item.espBase : DEFAULTS.espBaseSP;
+      $espFajaSP.value = item.espFaja != null ? item.espFaja : DEFAULTS.espFajaSP;
+      $cantoOn.checked = cantoOf(item) > 0;
       if (item.cliente) $cliente.value = item.cliente;
       if (item.orden) $orden.value = item.orden;
       saveConfig();
@@ -1021,7 +1060,7 @@
   });
 
   // ============== MENÚ HAMBURGUESA + BIBLIOTECA DE TRABAJOS ==============
-  const APP_VERSION = 'v1.4';
+  const APP_VERSION = 'v1.5';
   const JOB_KEY = 'mobili-molduras-trabajo-activo-v1';
   const $drawer = $('drawer');
   const $drawerOverlay = $('drawer-overlay');
@@ -1088,9 +1127,10 @@
     const now = Date.now();
     const frentes = job.frentes.slice().sort((a, b) => a.nro - b.nro);
     const list = frentes.map((f, i) => ({
-      model: job.modelo, nro: f.nro, plano: f.plano || '', H: f.alto, A: f.ancho, cant: f.cant,
+      model: job.modelo, nro: f.nro, tipo: f.tipo || '', plano: f.plano || '', H: f.alto, A: f.ancho, cant: f.cant,
       r: f.r != null ? f.r : (job.refilado != null ? job.refilado : 1),
       marco: job.marco, surco: job.surco, c2: job.c2, c3: job.c3, faja: job.faja,
+      espBase: job.espBase, espFaja: job.espFaja, canto: job.canto != null ? job.canto : CANTO_STD,
       cliente: job.cliente || '', orden: job.orden || '', t: now - i,
     }));
     loadedRef = null;
@@ -1199,6 +1239,9 @@
     $marcoMC.value = DEFAULTS.marcoMC;
     $surcoMC.value = DEFAULTS.surcoMC;
     $fajaSP.value = DEFAULTS.fajaSP;
+    $espBaseSP.value = DEFAULTS.espBaseSP;
+    $espFajaSP.value = DEFAULTS.espFajaSP;
+    $cantoOn.checked = true;
     setRefiladoFrente(DEFAULTS.refilado);
     saveConfig();
     compute();

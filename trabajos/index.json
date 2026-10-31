@@ -3,7 +3,14 @@
   "nombre": "Casa Astor · Cocina principal",
   "archivo": "casa-astor-cocina-principal.json",
   "modelo": "media-cana",
-  "frentes": 17,
+  "frentes": 25,
   "fecha": "29/10/2026"
+ },
+ {
+  "nombre": "Casa Astor · Placares",
+  "archivo": "casa-astor-placares.json",
+  "modelo": "simple-placar",
+  "frentes": 16,
+  "fecha": "31/10/2026"
  }
 ]
