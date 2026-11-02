@@ -609,14 +609,15 @@
 
     // grupos por espesor: key → { esp, nota, rows: Map(medida → {cant, alto, ancho}) }
     const grupos = new Map();
+    let it;
     const add = (key, esp, nota, cant, alto, ancho) => {
       if (!grupos.has(key)) grupos.set(key, { esp, nota, rows: new Map() });
       const g = grupos.get(key);
-      const k = fmt(alto) + '×' + fmt(ancho);
+      const k = it.ref + '|' + fmt(alto) + '×' + fmt(ancho); // una fila por N° y medida
       if (g.rows.has(k)) g.rows.get(k).cant += cant;
-      else g.rows.set(k, { cant, alto, ancho });
+      else g.rows.set(k, { ref: it.ref, tipo: it.tipo, cant, alto, ancho });
     };
-    for (const it of items) {
+    for (it of items) {
       if (it.model === 'media-cana') {
         add('18', 18, '', it.cant, it.altoBruto, it.anchoBruto);
         add('9', 9, 'doble cantidad', 2 * it.cant, it.altoBruto, it.anchoBruto);
@@ -641,12 +642,13 @@
       <section>
         <div class="sec-head"><span>Orden ${i + 1} — Placa ${g.esp} mm${g.nota ? ` <em>(${esc(g.nota)})</em>` : ''}</span><span class="pz">${totalDe(g)} piezas</span></div>
         <table>
-          <thead><tr><th>Cant</th><th class="m">Alto × ancho (cm)</th></tr></thead>
-          <tbody>${[...g.rows.values()].map(r => `<tr><td class="c">${r.cant}</td><td class="m">${fmt(r.alto)} × ${fmt(r.ancho)}</td></tr>`).join('')}</tbody>
+          <thead><tr><th class="n">N° pieza</th><th>Cant</th><th class="m">Alto × ancho (cm)</th></tr></thead>
+          <tbody>${[...g.rows.values()].map(r => `<tr><td class="n">${r.ref}${r.tipo ? ` <small>${esc(r.tipo)}</small>` : ''}</td><td class="c">${r.cant}</td><td class="m">${fmt(r.alto)} × ${fmt(r.ancho)}</td></tr>`).join('')}</tbody>
         </table>
       </section>`).join('');
 
     const totales = lista.map(g => `<span><b>${totalDe(g)}</b> piezas ${g.esp} mm</span>`);
+    const banner = items.map(f => `<div class="bn"><span class="bn-n">N° ${f.ref}${f.cant > 1 ? ` <i>×${f.cant}</i>` : ''}</span><span class="bn-m">${fmt(f.H)} × ${fmt(f.A)}</span>${f.tipo ? `<span class="bn-t">${esc(f.tipo)}</span>` : ''}</div>`).join('');
     totales.push(`<span><b>${lista.reduce((s, g) => s + totalDe(g), 0)}</b> piezas totales</span>`);
 
     const metaLine = [];
@@ -667,17 +669,30 @@
   .brand-name { font-size:26px; font-weight:800; letter-spacing:.03em; line-height:1; }
   .subtitle { font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:#555; margin-top:2px; }
   .meta { text-align:right; font-size:11px; font-weight:500; line-height:1.4; color:#333; }
-  section { break-inside:auto; }
+  section { break-inside:auto; min-width:0; }
+  .secs.two { display:grid; grid-template-columns:1fr 1fr; gap:0 18px; align-items:start; }
+  .secs.two th.m, .secs.two td.m { padding-right:8px; }
   .sec-head { display:flex; justify-content:space-between; align-items:baseline; font-size:12px; font-weight:700; text-transform:uppercase; padding:6px 0 4px; border-bottom:1px solid #E2E2E2; break-after:avoid; }
   .sec-head em { font-style:normal; }
   .sec-head .pz { font-size:11px; font-weight:500; text-transform:none; color:#444; }
   table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
   thead { display:table-header-group; }
   tr { break-inside:avoid; }
-  th { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; text-align:left; padding:6px 6px 4px 18px; color:#333; }
+  th { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; text-align:left; padding:6px 6px 4px 10px; color:#333; }
   th.m { text-align:right; padding-right:30px; }
   td { padding:2px 6px; border-bottom:1px solid #EDEDED; }
-  td.c { font-size:14px; font-weight:700; padding-left:18px; width:80px; }
+  td.c { font-size:14px; font-weight:700; padding-left:10px; width:60px; }
+  th.n, td.n { width:92px; padding-left:10px; }
+  td.n { font-size:14px; font-weight:800; border-right:1px solid #DDD; }
+  td.n small { font-size:9px; font-weight:600; text-transform:uppercase; color:#555; }
+  .banner-head { display:flex; justify-content:space-between; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin:6px 0 4px; color:#333; }
+  .banner-head span:last-child { font-weight:500; text-transform:none; letter-spacing:0; color:#555; }
+  .banner { display:grid; grid-template-columns:repeat(6,1fr); gap:3px; border:1.5px solid #333; border-radius:4px; padding:4px; margin-bottom:2px; }
+  .bn { border:1px solid #CFCFCF; border-radius:3px; padding:2px 5px; display:flex; flex-direction:column; line-height:1.2; break-inside:avoid; }
+  .bn-n { font-size:11px; font-weight:800; }
+  .bn-n i { font-style:normal; font-weight:700; color:#555; }
+  .bn-m { font-size:11px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .bn-t { font-size:8.5px; text-transform:uppercase; color:#555; font-weight:600; }
   td.m { font-size:15.5px; font-weight:700; text-align:right; padding-right:30px; }
   .totales { margin-top:8px; padding-top:6px; border-top:2px solid #333; display:flex; justify-content:space-around; font-size:12px; color:#333; break-inside:avoid; }
   .totales b { font-size:15px; font-weight:800; color:#1A1A1A; margin-right:3px; }
@@ -689,7 +704,9 @@
     </div>
     <div class="meta">${metaLine.join('')}</div>
   </div>
-  ${secciones}
+  <div class="banner-head"><span>Medidas finales por pieza</span><span>alto × ancho (cm) · para comparar</span></div>
+  <div class="banner">${banner}</div>
+  <div class="secs${lista.length >= 2 ? ' two' : ''}">${secciones}</div>
   <div class="totales">${totales.join('')}</div>
 </body></html>`;
   }
@@ -1023,7 +1040,7 @@
   });
 
   // ============== MENÚ HAMBURGUESA + BIBLIOTECA DE TRABAJOS ==============
-  const APP_VERSION = 'v1.6';
+  const APP_VERSION = 'v1.7';
   const JOB_KEY = 'mobili-molduras-trabajo-activo-v1';
   const $drawer = $('drawer');
   const $drawerOverlay = $('drawer-overlay');
