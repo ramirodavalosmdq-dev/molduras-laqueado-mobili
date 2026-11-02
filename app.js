@@ -668,6 +668,7 @@
   .brand svg { width:34px; height:34px; }
   .brand-name { font-size:26px; font-weight:800; letter-spacing:.03em; line-height:1; }
   .subtitle { font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:#555; margin-top:2px; }
+  #pg { width:182mm; margin:0 auto; }
   .meta { text-align:right; font-size:11px; font-weight:500; line-height:1.4; color:#333; }
   section { break-inside:auto; min-width:0; }
   .secs.two { display:grid; grid-template-columns:1fr 1fr; gap:0 18px; align-items:start; }
@@ -680,23 +681,23 @@
   tr { break-inside:avoid; }
   th { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; text-align:left; padding:6px 6px 4px 10px; color:#333; }
   th.m { text-align:right; padding-right:30px; }
-  td { padding:2px 6px; border-bottom:1px solid #EDEDED; }
-  td.c { font-size:14px; font-weight:700; padding-left:10px; width:60px; }
+  td { padding:var(--pad,2px) 6px; border-bottom:1px solid #EDEDED; }
+  td.c { font-size:calc(14px * var(--k,1)); font-weight:700; padding-left:10px; width:60px; }
   th.n, td.n { width:92px; padding-left:10px; }
-  td.n { font-size:14px; font-weight:800; border-right:1px solid #DDD; }
+  td.n { font-size:calc(14px * var(--k,1)); font-weight:800; border-right:1px solid #DDD; }
   td.n small { font-size:9px; font-weight:600; text-transform:uppercase; color:#555; }
   .banner-head { display:flex; justify-content:space-between; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin:6px 0 4px; color:#333; }
   .banner-head span:last-child { font-weight:500; text-transform:none; letter-spacing:0; color:#555; }
   .banner { display:grid; grid-template-columns:repeat(6,1fr); gap:3px; border:1.5px solid #333; border-radius:4px; padding:4px; margin-bottom:2px; }
-  .bn { border:1px solid #CFCFCF; border-radius:3px; padding:2px 5px; display:flex; flex-direction:column; line-height:1.2; break-inside:avoid; }
-  .bn-n { font-size:11px; font-weight:800; }
+  .bn { border:1px solid #CFCFCF; border-radius:3px; padding:var(--bpad,2px) 5px; display:flex; flex-direction:column; line-height:1.2; break-inside:avoid; }
+  .bn-n { font-size:calc(11px * var(--kb,1)); font-weight:800; }
   .bn-n i { font-style:normal; font-weight:700; color:#555; }
-  .bn-m { font-size:11px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .bn-m { font-size:calc(11px * var(--kb,1)); font-weight:600; font-variant-numeric:tabular-nums; }
   .bn-t { font-size:8.5px; text-transform:uppercase; color:#555; font-weight:600; }
-  td.m { font-size:15.5px; font-weight:700; text-align:right; padding-right:30px; }
+  td.m { font-size:calc(15.5px * var(--k,1)); font-weight:700; text-align:right; padding-right:30px; }
   .totales { margin-top:8px; padding-top:6px; border-top:2px solid #333; display:flex; justify-content:space-around; font-size:12px; color:#333; break-inside:avoid; }
   .totales b { font-size:15px; font-weight:800; color:#1A1A1A; margin-right:3px; }
-</style></head><body>
+</style></head><body><div id="pg">
   <div class="header">
     <div class="brand">
       <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="5" width="30" height="30" fill="none" stroke="#1A1A1A" stroke-width="5"/></svg>
@@ -708,6 +709,22 @@
   <div class="banner">${banner}</div>
   <div class="secs${lista.length >= 2 ? ' two' : ''}">${secciones}</div>
   <div class="totales">${totales.join('')}</div>
+</div>
+<script>
+  // Ajusta letra y alto de filas para ocupar toda la hoja A4 (sin pasar a una 2ª hoja)
+  (function () {
+    var pg = document.getElementById('pg'), root = document.documentElement.style;
+    var MM = 96 / 25.4, TARGET = (297 - 9 - 8) * MM * 0.97;
+    function set(k, pad) { root.setProperty('--k', k); root.setProperty('--kb', Math.min(k, 1.3)); root.setProperty('--bpad', (2 + (k - 1) * 8) + 'px'); root.setProperty('--pad', pad + 'px'); }
+    function fit() {
+      if (pg.offsetHeight > TARGET) return;
+      var k = 1, pad = 2;
+      while (k < 1.45) { set(k + 0.05, pad); if (pg.offsetHeight > TARGET) { set(k, pad); break; } k += 0.05; }
+      while (pad < 16) { set(k, pad + 0.5); if (pg.offsetHeight > TARGET) { set(k, pad); break; } pad += 0.5; }
+    }
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit); else window.addEventListener('load', fit);
+  })();
+</script>
 </body></html>`;
   }
 
@@ -1040,7 +1057,7 @@
   });
 
   // ============== MENÚ HAMBURGUESA + BIBLIOTECA DE TRABAJOS ==============
-  const APP_VERSION = 'v1.7';
+  const APP_VERSION = 'v1.8';
   const JOB_KEY = 'mobili-molduras-trabajo-activo-v1';
   const $drawer = $('drawer');
   const $drawerOverlay = $('drawer-overlay');
