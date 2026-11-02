@@ -594,7 +594,7 @@
 
   // ============== PRINT BATCH (orden de corte agrupado por operacion) ==============
   function buildBatchPrintHTML(list, cliente, orden) {
-    // Orden de corte compacta: una fila por frente con todas sus piezas (entra en 1–2 hojas A4)
+    // Orden de corte para el sector de corte: solo cantidad y medida de corte, agrupado por espesor de placa
     const esc = escapeHtml;
     const hoy = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' });
 
@@ -602,132 +602,95 @@
       const r = (item.r != null) ? item.r : 1;
       const cant = (item.cant != null && item.cant >= 1) ? item.cant : 1;
       const c = cantoOf(item);
-      const altoBruto = item.H - 2 * c + 2 * r;
-      const anchoBruto = item.A - 2 * c + 2 * r;
-      return { ...item, ref: item.nro != null ? item.nro : i + 1, r, cant, c, altoBruto, anchoBruto,
+      return { ...item, ref: item.nro != null ? item.nro : i + 1, r, cant, c,
+        altoBruto: item.H - 2 * c + 2 * r, anchoBruto: item.A - 2 * c + 2 * r,
         eB: item.espBase || DEFAULTS.espBaseSP, eF: item.espFaja || DEFAULTS.espFajaSP };
     }).sort((a, b) => (a.nro != null && b.nro != null) ? a.nro - b.nro : 0);
 
+    // grupos por espesor: key → { esp, nota, rows: Map(medida → {cant, alto, ancho}) }
+    const grupos = new Map();
+    const add = (key, esp, nota, cant, alto, ancho) => {
+      if (!grupos.has(key)) grupos.set(key, { esp, nota, rows: new Map() });
+      const g = grupos.get(key);
+      const k = fmt(alto) + '×' + fmt(ancho);
+      if (g.rows.has(k)) g.rows.get(k).cant += cant;
+      else g.rows.set(k, { cant, alto, ancho });
+    };
+    for (const it of items) {
+      if (it.model === 'media-cana') {
+        add('18', 18, '', it.cant, it.altoBruto, it.anchoBruto);
+        add('9', 9, 'doble cantidad', 2 * it.cant, it.altoBruto, it.anchoBruto);
+      } else if (it.model === 'step') {
+        const c2b = (it.c2 || DEFAULTS.faja2) - it.c + it.r, c3b = (it.c3 || DEFAULTS.faja3) - it.c + it.r;
+        add('12', 12, '', it.cant, it.altoBruto, it.anchoBruto);
+        add('3', 3, 'fajas', 2 * it.cant, it.altoBruto, c2b);
+        add('3', 3, 'fajas', 2 * it.cant, c2b, it.anchoBruto - 2 * c2b);
+        add('3', 3, 'fajas', 2 * it.cant, it.altoBruto, c3b);
+        add('3', 3, 'fajas', 2 * it.cant, c3b, it.anchoBruto - 2 * c3b);
+      } else if (it.model === 'simple-placar') {
+        const fb = (it.faja || DEFAULTS.fajaSP) - it.c + it.r;
+        add(String(it.eB), it.eB, '', it.cant, it.altoBruto, it.anchoBruto);
+        add('f' + it.eF, it.eF, 'fajas', 2 * it.cant, it.altoBruto, fb);
+        add('f' + it.eF, it.eF, 'fajas', 2 * it.cant, fb, it.anchoBruto - 2 * fb);
+      }
+    }
+    const lista = [...grupos.values()].sort((a, b) => b.esp - a.esp);
+    const totalDe = (g) => [...g.rows.values()].reduce((s, r) => s + r.cant, 0);
+
+    const secciones = lista.map((g, i) => `
+      <section>
+        <div class="sec-head"><span>Orden ${i + 1} — Placa ${g.esp} mm${g.nota ? ` <em>(${esc(g.nota)})</em>` : ''}</span><span class="pz">${totalDe(g)} piezas</span></div>
+        <table>
+          <thead><tr><th>Cant</th><th class="m">Alto × ancho (cm)</th></tr></thead>
+          <tbody>${[...g.rows.values()].map(r => `<tr><td class="c">${r.cant}</td><td class="m">${fmt(r.alto)} × ${fmt(r.ancho)}</td></tr>`).join('')}</tbody>
+        </table>
+      </section>`).join('');
+
+    const totales = lista.map(g => `<span><b>${totalDe(g)}</b> piezas ${g.esp} mm</span>`);
+    totales.push(`<span><b>${lista.reduce((s, g) => s + totalDe(g), 0)}</b> piezas totales</span>`);
+
     const metaLine = [];
-    if (cliente) metaLine.push(`<div class="cliente">${esc(cliente)}</div>`);
-    if (orden) metaLine.push(`<div><strong>Orden N°:</strong> ${esc(orden)}</div>`);
+    if (cliente) metaLine.push(`<div>Cliente: ${esc(cliente)}</div>`);
+    if (orden) metaLine.push(`<div>Orden N°: ${esc(orden)}</div>`);
     metaLine.push(`<div>Fecha: ${hoy}</div>`);
-
-    const mc = items.filter(it => it.model === 'media-cana');
-    const st = items.filter(it => it.model === 'step');
-    const sp = items.filter(it => it.model === 'simple-placar');
-    const tot = { frentes: 0, b12: 0, b18: 0, c9: 0, f3: 0, bases: {}, fajas: {} };
-    const chk = '<td class="chk"><span></span></td>';
-    const nroCell = (f) => `<td class="ref-cell">N° ${f.ref}${f.cant > 1 ? ` <b class="x">×${f.cant}</b>` : ''}${f.tipo ? `<small class="tipo">${esc(f.tipo)}</small>` : ''}</td>`;
-    const finalCell = (f) => `<td class="fin">${fmt(f.H)} × ${fmt(f.A)}${f.plano ? `<small>plano ${esc(f.plano)}</small>` : ''}</td>`;
-    const corteCell = (f) => `<td class="medida-cell">${fmt(f.altoBruto)} × ${fmt(f.anchoBruto)}</td>`;
-    const piece = (n, alto, ancho) => `<td class="pz"><b>${n}</b> × ${fmt(alto)} × ${fmt(ancho)}</td>`;
-
-    let blocks = '';
-    if (mc.length) {
-      const rows = mc.map(f => {
-        const desc = 2 * ((f.marco || DEFAULTS.marcoMC) + (f.surco || DEFAULTS.surcoMC));
-        const mA = f.H - desc, mB = f.A - desc;
-        const sin = mA <= 0 || mB <= 0;
-        tot.frentes += f.cant; tot.b18 += f.cant; tot.c9 += 2 * f.cant;
-        return `<tr>${nroCell(f)}${finalCell(f)}${corteCell(f)}<td class="num">${f.cant}</td><td class="num">${2 * f.cant}</td>${sin ? '<td class="tag">SIN CENTRO</td>' : `<td class="sub">${fmt(mA)} × ${fmt(mB)}</td>`}<td class="sub">${fmt(f.H - 2 * f.c)} × ${fmt(f.A - 2 * f.c)}</td>${chk}</tr>`;
-      }).join('');
-      blocks += `<div class="section-title"><span>Media caña — 3 placas iguales por frente</span><span class="meta-info">corte en cm, alto × ancho</span></div>
-      <table><thead><tr><th>N°</th><th>Final · plano</th><th>Corte</th><th class="num">18 mm</th><th class="num">9 mm</th><th>Moldura int.</th><th>Refilado</th><th class="chk">✓</th></tr></thead><tbody>${rows}</tbody></table>`;
-    }
-    if (st.length) {
-      const rows = st.map(f => {
-        const c2 = f.c2 || DEFAULTS.faja2, c3 = f.c3 || DEFAULTS.faja3;
-        const c2b = c2 - f.c + f.r, c3b = c3 - f.c + f.r;
-        tot.frentes += f.cant; tot.b12 += f.cant; tot.f3 += 8 * f.cant;
-        return `<tr>${nroCell(f)}${finalCell(f)}${corteCell(f)}${piece(2 * f.cant, f.altoBruto, c2b)}${piece(2 * f.cant, c2b, f.anchoBruto - 2 * c2b)}${piece(2 * f.cant, f.altoBruto, c3b)}${piece(2 * f.cant, c3b, f.anchoBruto - 2 * c3b)}${chk}</tr>`;
-      }).join('');
-      blocks += `<div class="section-title"><span>Step — base 12 mm + fajas 3 mm</span><span class="meta-info">fajas: cant × alto × ancho</span></div>
-      <table><thead><tr><th>N°</th><th>Final · plano</th><th>Base 12 mm</th><th>C2 vert.</th><th>C2 horiz.</th><th>C3 vert.</th><th>C3 horiz.</th><th class="chk">✓</th></tr></thead><tbody>${rows}</tbody></table>`;
-    }
-    const combos = [...new Set(sp.map(f => f.eB + '/' + f.eF))];
-    for (const combo of combos) {
-      const grp = sp.filter(f => f.eB + '/' + f.eF === combo);
-      const [eB, eF] = combo.split('/');
-      const sinCanto = grp.every(f => f.c === 0);
-      const rows = grp.map(f => {
-        const fb = (f.faja || DEFAULTS.fajaSP) - f.c + f.r;
-        tot.frentes += f.cant;
-        tot.bases[eB] = (tot.bases[eB] || 0) + f.cant;
-        tot.fajas[eF] = (tot.fajas[eF] || 0) + 4 * f.cant;
-        return `<tr>${nroCell(f)}${finalCell(f)}${corteCell(f)}${piece(2 * f.cant, f.altoBruto, fb)}${piece(2 * f.cant, fb, f.anchoBruto - 2 * fb)}<td class="sub">${fmt(f.H - 2 * f.c)} × ${fmt(f.A - 2 * f.c)}</td>${chk}</tr>`;
-      }).join('');
-      blocks += `<div class="section-title"><span>Simple placar — base ${eB} mm + fajas ${eF} mm${sinCanto ? ' · SIN CANTO' : ''}</span><span class="meta-info">verticales enteras, horizontales entre medio</span></div>
-      <table><thead><tr><th>N°</th><th>Final · plano</th><th>Base ${eB} mm</th><th>Faja vert.</th><th>Faja horiz.</th><th>Refilado</th><th class="chk">✓</th></tr></thead><tbody>${rows}</tbody></table>`;
-    }
-
-    const totales = [`<span><strong>${tot.frentes}</strong> frentes</span>`];
-    if (tot.b12) totales.push(`<span><strong>${tot.b12}</strong> bases 12 mm</span>`);
-    if (tot.b18) totales.push(`<span><strong>${tot.b18}</strong> bases 18 mm</span>`);
-    if (tot.c9) totales.push(`<span><strong>${tot.c9}</strong> caras 9 mm</span>`);
-    if (tot.f3) totales.push(`<span><strong>${tot.f3}</strong> fajas 3 mm</span>`);
-    for (const [e, n] of Object.entries(tot.bases)) totales.push(`<span><strong>${n}</strong> bases ${e} mm</span>`);
-    for (const [e, n] of Object.entries(tot.fajas)) totales.push(`<span><strong>${n}</strong> fajas ${e} mm</span>`);
-    const sumObj = (o) => Object.values(o).reduce((a, b) => a + b, 0);
-    totales.push(`<span><strong>${tot.b12 + tot.b18 + tot.c9 + tot.f3 + sumObj(tot.bases) + sumObj(tot.fajas)}</strong> piezas totales</span>`);
 
     return `<!DOCTYPE html><html lang="es-AR"><head><meta charset="UTF-8"><title>Orden de corte — Mobili</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
 <style>
-  @page { size: A4; margin: 10mm 10mm 10mm; }
+  @page { size: A4; margin: 9mm 14mm 8mm; }
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Poppins',Arial,sans-serif; color:#0A1B4A; font-size:11px; line-height:1.3; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-  .header { display:flex; justify-content:space-between; align-items:center; gap:16px; background:#0F2C6B; color:#fff; border-radius:7px; padding:9px 14px; margin-bottom:8px; }
-  .brand { display:flex; align-items:center; gap:10px; }
-  .brand-icon { width:26px; height:26px; }
-  .brand-name { font-size:21px; font-weight:800; letter-spacing:.04em; line-height:1; }
-  .subtitle { font-size:13px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; margin-top:3px; }
-  .meta { text-align:right; font-size:11px; line-height:1.5; color:#DCE4F5; }
-  .meta strong { color:#fff; }
-  .meta .cliente { font-size:14px; color:#fff; font-weight:700; }
-  .section-title { font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:#0F2C6B; margin:10px 0 4px; padding:4px 9px; background:#E8EEFA; border-left:5px solid #0F2C6B; border-radius:3px; display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
-  .section-title .meta-info { font-size:10.5px; font-weight:600; text-transform:none; letter-spacing:0; white-space:nowrap; }
+  body { font-family:'Poppins',Arial,sans-serif; color:#1A1A1A; font-size:12px; line-height:1.35; }
+  .header { display:flex; justify-content:space-between; align-items:flex-end; padding-bottom:8px; border-bottom:2px solid #333; margin-bottom:6px; }
+  .brand { display:flex; align-items:center; gap:14px; }
+  .brand svg { width:34px; height:34px; }
+  .brand-name { font-size:26px; font-weight:800; letter-spacing:.03em; line-height:1; }
+  .subtitle { font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:#555; margin-top:2px; }
+  .meta { text-align:right; font-size:11px; font-weight:500; line-height:1.4; color:#333; }
+  section { break-inside:auto; }
+  .sec-head { display:flex; justify-content:space-between; align-items:baseline; font-size:12px; font-weight:700; text-transform:uppercase; padding:6px 0 4px; border-bottom:1px solid #E2E2E2; break-after:avoid; }
+  .sec-head em { font-style:normal; }
+  .sec-head .pz { font-size:11px; font-weight:500; text-transform:none; color:#444; }
   table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
   thead { display:table-header-group; }
-  tr { page-break-inside:avoid; }
-  th { text-align:left; padding:4px 6px; color:#5B6782; font-weight:700; text-transform:uppercase; font-size:9px; letter-spacing:.05em; border-bottom:2px solid #0F2C6B; white-space:nowrap; }
-  th.num, td.num { text-align:center; }
-  td { padding:4px 6px; border-bottom:1px solid #DCE2EE; font-size:12px; white-space:nowrap; vertical-align:middle; }
-  tbody tr:nth-child(even) td { background:#F6F8FC; }
-  td.ref-cell { font-weight:800; color:#0F2C6B; font-size:13px; }
-  td.ref-cell .x { font-size:11px; color:#B4232A; margin-left:2px; }
-  td.ref-cell .tipo { display:block; font-size:9.5px; font-weight:700; color:#5B6782; text-transform:uppercase; letter-spacing:.04em; }
-  td.fin { font-size:11px; color:#3A4766; line-height:1.15; }
-  td.fin small { display:block; font-size:9px; color:#7A84A0; }
-  td.medida-cell { font-size:15px; font-weight:800; }
-  td.num { font-weight:800; font-size:14px; }
-  td.pz { font-size:12px; font-weight:600; }
-  td.pz b { color:#0F2C6B; }
-  td.sub { font-size:12.5px; font-weight:600; }
-  td.tag { font-size:10.5px; font-weight:800; color:#9A5B00; }
-  th.chk, td.chk { width:26px; text-align:center; }
-  td.chk span { display:inline-block; width:14px; height:14px; border:1.5px solid #0F2C6B; border-radius:3px; vertical-align:middle; }
-  .totales { margin-top:10px; border:2px solid #0F2C6B; border-radius:7px; display:flex; page-break-inside:avoid; }
-  .totales > span { flex:1 1 0; padding:5px 8px; text-align:center; font-size:10px; color:#3A4766; border-right:1px solid #C9D3EA; }
-  .totales > span:last-child { border-right:none; background:#0F2C6B; color:#fff; }
-  .totales strong { display:block; font-size:17px; font-weight:800; color:#0F2C6B; line-height:1.1; }
-  .totales > span:last-child strong { color:#fff; }
-  .nota { margin-top:6px; font-size:9.5px; color:#5B6782; }
-  .firma { margin-top:16px; display:flex; gap:24px; font-size:10px; color:#5B6782; page-break-inside:avoid; }
-  .firma div { flex:1; border-top:1px solid #8A94AD; padding-top:3px; }
+  tr { break-inside:avoid; }
+  th { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; text-align:left; padding:6px 6px 4px 18px; color:#333; }
+  th.m { text-align:right; padding-right:30px; }
+  td { padding:2px 6px; border-bottom:1px solid #EDEDED; }
+  td.c { font-size:14px; font-weight:700; padding-left:18px; width:80px; }
+  td.m { font-size:15.5px; font-weight:700; text-align:right; padding-right:30px; }
+  .totales { margin-top:8px; padding-top:6px; border-top:2px solid #333; display:flex; justify-content:space-around; font-size:12px; color:#333; break-inside:avoid; }
+  .totales b { font-size:15px; font-weight:800; color:#1A1A1A; margin-right:3px; }
 </style></head><body>
   <div class="header">
     <div class="brand">
-      <svg class="brand-icon" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="6" width="28" height="28" fill="none" stroke="#FFFFFF" stroke-width="6.5"/></svg>
+      <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="5" width="30" height="30" fill="none" stroke="#1A1A1A" stroke-width="5"/></svg>
       <div><div class="brand-name">MOBILI</div><div class="subtitle">Orden de corte</div></div>
     </div>
     <div class="meta">${metaLine.join('')}</div>
   </div>
-  ${blocks}
+  ${secciones}
   <div class="totales">${totales.join('')}</div>
-  <p class="nota">Medidas en cm. Corte = final − canto + 2 × refilado por lado. Refilado = medida antes de pegar el canto (1 mm por borde; sin canto, igual a la final).${mc.length ? ' Media caña: las placas de 18 mm y 9 mm se cortan a la misma medida; menos de 18 cm va sin centro.' : ''}</p>
-  <div class="firma"><div>Cortó</div><div>Controló</div><div>Fecha de corte</div></div>
 </body></html>`;
   }
 
@@ -1060,7 +1023,7 @@
   });
 
   // ============== MENÚ HAMBURGUESA + BIBLIOTECA DE TRABAJOS ==============
-  const APP_VERSION = 'v1.5';
+  const APP_VERSION = 'v1.6';
   const JOB_KEY = 'mobili-molduras-trabajo-activo-v1';
   const $drawer = $('drawer');
   const $drawerOverlay = $('drawer-overlay');
