@@ -5,8 +5,8 @@
     refilado: 1,
     faja2: 6.3,
     faja3: 6,
-    marcoMC: 5.5,
-    surcoMC: 3.5,
+    marcoMC: 6.25,
+    surcoMC: 4.5, // 'calle' (Rami 6/11/26): marco 6,25 + calle 4,5 → centro = final − 21,5
     fajaSP: 8,
     espBaseSP: 12,
     espFajaSP: 5,
@@ -87,8 +87,9 @@
       if (typeof cfg.refilado === 'number') $refilado.value = cfg.refilado;
       if (typeof cfg.faja2 === 'number') $faja2.value = cfg.faja2;
       if (typeof cfg.faja3 === 'number') $faja3.value = cfg.faja3;
-      if (typeof cfg.marcoMC === 'number') $marcoMC.value = cfg.marcoMC;
-      if (typeof cfg.surcoMC === 'number') $surcoMC.value = cfg.surcoMC;
+      // valores viejos (marco 5,5 / surco 3,5) se descartan: el mecanizado cambió el 6/11/26
+      if (cfg.mcVer === 2 && typeof cfg.marcoMC === 'number') $marcoMC.value = cfg.marcoMC;
+      if (cfg.mcVer === 2 && typeof cfg.surcoMC === 'number') $surcoMC.value = cfg.surcoMC;
       if (typeof cfg.fajaSP === 'number') $fajaSP.value = cfg.fajaSP;
       if (typeof cfg.espBaseSP === 'number') $espBaseSP.value = cfg.espBaseSP;
       if (typeof cfg.espFajaSP === 'number') $espFajaSP.value = cfg.espFajaSP;
@@ -106,6 +107,7 @@
         faja3: parseFloat($faja3.value),
         marcoMC: parseFloat($marcoMC.value),
         surcoMC: parseFloat($surcoMC.value),
+        mcVer: 2,
         fajaSP: parseFloat($fajaSP.value),
         espBaseSP: parseFloat($espBaseSP.value),
         espFajaSP: parseFloat($espFajaSP.value),
@@ -370,11 +372,11 @@
     const marco = parseFloat($marcoMC.value);
     const surco = parseFloat($surcoMC.value);
     if (isNaN(marco) || isNaN(surco) || marco <= 0 || surco <= 0) {
-      showError('Ingresá valores válidos en marco y surco.');
+      showError('Ingresá valores válidos en marco y calle.');
       return;
     }
     const d = computeMediaCana(H, A, cant, r, marco, surco);
-    // Regla de taller: si mide menos de 18 cm se hace igual en media caña, sin la parte del centro
+    // Regla de taller: si mide menos de 2 × (marco + calle) se hace igual en media caña, sin la parte del centro
     d.sinCentro = (d.molduraAlto <= 0 || d.molduraAncho <= 0);
     const molduraStr = d.sinCentro ? 'Sin centro' : `${fmt(d.molduraAlto)} × ${fmt(d.molduraAncho)}`;
     clearError();
@@ -393,7 +395,7 @@
         <div class="value">${fmt(d.altoBruto)} × ${fmt(d.anchoBruto)}</div>
       </div>
       <div class="stat">
-        <div class="label">Moldura interior</div>
+        <div class="label">Centro</div>
         <div class="value">${molduraStr}</div>
       </div>
     `;
@@ -406,10 +408,10 @@
       <tr><td>Cara superior</td><td class="num">${nPlacas}</td><td class="num">9 mm</td><td class="num">${fmt(d.altoBruto)}</td><td class="num">${fmt(d.anchoBruto)}</td></tr>
       <tr><td>Cara inferior</td><td class="num">${nPlacas}</td><td class="num">9 mm</td><td class="num">${fmt(d.altoBruto)}</td><td class="num">${fmt(d.anchoBruto)}</td></tr>
       <tr><td>Base mecanizado</td><td class="num">${nPlacas}</td><td class="num">18 mm</td><td class="num">${fmt(d.altoBruto)}</td><td class="num">${fmt(d.anchoBruto)}</td></tr>
-      <tr class="group-head"><td colspan="5">Fresado — moldura interior (surco media caña)</td></tr>
+      <tr class="group-head"><td colspan="5">Fresado — centro (marco + calle)</td></tr>
       ${d.sinCentro
         ? `<tr><td colspan="5">Sin centro: mide menos de ${fmt(d.descuento)} cm, va con media caña pero sin la parte del centro</td></tr>`
-        : `<tr><td>Marco interior fresa</td><td class="num">—</td><td class="num">—</td><td class="num">${fmt(d.molduraAlto)}</td><td class="num">${fmt(d.molduraAncho)}</td></tr>`}
+        : `<tr><td>Centro (marco + calle)</td><td class="num">—</td><td class="num">—</td><td class="num">${fmt(d.molduraAlto)}</td><td class="num">${fmt(d.molduraAncho)}</td></tr>`}
       <tr class="group-head"><td colspan="5">Refilado post-armado (antes del canto)</td></tr>
       <tr><td>Medida refilado</td><td class="num">—</td><td class="num">—</td><td class="num">${fmt(d.refiladoAlto)}</td><td class="num">${fmt(d.refiladoAncho)}</td></tr>
     `;
@@ -514,7 +516,7 @@
         ``,
         r.sinCentro
           ? `MOLDURA: media caña SIN CENTRO (menos de ${fmt(r.descuento)} cm)`
-          : `MOLDURA INTERIOR (fresa media caña): ${fmt(r.molduraAlto)} × ${fmt(r.molduraAncho)} cm`,
+          : `CENTRO (fresa media caña): ${fmt(r.molduraAlto)} × ${fmt(r.molduraAncho)} cm`,
       );
     } else if (r.model === 'simple-placar') {
       const nF = 2 * r.cant;
@@ -1057,7 +1059,7 @@
   });
 
   // ============== MENÚ HAMBURGUESA + BIBLIOTECA DE TRABAJOS ==============
-  const APP_VERSION = 'v1.8';
+  const APP_VERSION = 'v1.9';
   const JOB_KEY = 'mobili-molduras-trabajo-activo-v1';
   const $drawer = $('drawer');
   const $drawerOverlay = $('drawer-overlay');
@@ -1126,7 +1128,7 @@
     const list = frentes.map((f, i) => ({
       model: job.modelo, nro: f.nro, tipo: f.tipo || '', plano: f.plano || '', H: f.alto, A: f.ancho, cant: f.cant,
       r: f.r != null ? f.r : (job.refilado != null ? job.refilado : 1),
-      marco: job.marco, surco: job.surco, c2: job.c2, c3: job.c3, faja: job.faja,
+      marco: job.marco, surco: job.calle != null ? job.calle : job.surco, c2: job.c2, c3: job.c3, faja: job.faja,
       espBase: job.espBase, espFaja: job.espFaja, canto: job.canto != null ? job.canto : CANTO_STD,
       cliente: job.cliente || '', orden: job.orden || '', t: now - i,
     }));

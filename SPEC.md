@@ -66,10 +66,10 @@ Faja Step C3 (**6 cm** final), r=1 → corte **6,9 cm**
 **Espesor total:** 36 mm. **Terminación:** surco perimetral fresa cóncava en cara visible. Canteado 4 bordes siempre.
 
 **Config de la moldura:**
-- Marco perimetral visible: **5,5 cm** por lado
-- Surco media caña: **3,5 cm** por lado
-- Moldura interior (marcación para la fresa) = `FINAL − 2 × (marco + surco)` = `FINAL − 18 cm`
-- Validación: si `ancho final < 18 cm` → NO se puede moldurar
+- Marco perimetral visible: **6,25 cm** por lado
+- Calle (franja entre el marco y el centro): **4,5 cm** por lado
+- Centro (marcación para la fresa) = `FINAL − 2 × (marco + calle)` = `FINAL − 21,5 cm` (corregido 06/11/26, probado en la pieza N° 8)
+- Si `final < 21,5 cm` → va **sin centro** (se hace igual en media caña)
 
 ### MODELO 3 — SIMPLE PLACAR
 **Composición:** 2 capas apiladas
@@ -99,7 +99,7 @@ Faja Step C3 (**6 cm** final), r=1 → corte **6,9 cm**
 ### Config avanzada (plegable al fondo)
 - **Refilado por defecto** (cm/lado) → arranca en 1, cambia para frentes nuevos
 - **Step:** ancho faja C2 final (6,3) · ancho faja C3 final (6)
-- **Media caña:** marco perimetral (5,5) · surco (3,5)
+- **Media caña:** marco perimetral (6,25) · calle (4,5)
 - **Simple Placar:** ancho faja final (8)
 - Botón **"Restaurar valores por defecto"**
 - Todos los valores persisten en `localStorage`

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mobili-molduras-v13';
+const CACHE_NAME = 'mobili-molduras-v14';
 const ASSETS = [
   './',
   './index.html',

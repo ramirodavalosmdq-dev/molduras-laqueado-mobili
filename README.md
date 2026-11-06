@@ -83,8 +83,8 @@ Ejemplo 98 × 68, r = 1: base 99,8 × 69,8 · C2 7,2 cm (horizontal 55,4) · C3 
 ### Modelo 2 — Media caña
 
 - Corte 3 placas (9 + 9 + 18 mm): `altoCorte × anchoCorte` cada una
-- Moldura interior (fresa): `(H − 2(marco + surco)) × (A − 2(marco + surco))`
-- Si el frente mide menos de 18 cm (2 × (marco + surco)), se hace igual en media caña pero **sin centro**; cuenta igual en el despiece
+- Centro (fresa): `(H − 2(marco + calle)) × (A − 2(marco + calle))` = final − 21,5
+- Si el frente mide menos de 21,5 cm (2 × (marco + calle)), se hace igual en media caña pero **sin centro**; cuenta igual en el despiece
 - Refilado post-armado: `(H − 0,2) × (A − 0,2)`
 
 Ejemplo 98 × 68, r = 1: placas 99,8 × 69,8 · fresa 80 × 50 · refilado 97,8 × 67,8
@@ -102,7 +102,7 @@ Ejemplo 98 × 68, r = 1: base 99,8 × 69,8 · faja 8,9 cm (horizontal 52)
 
 - Refilado por lado: **1 cm**
 - Step — faja C2: **6,3 cm** final · faja C3: **6 cm** final
-- Media caña — marco perimetral: **5,5 cm** · surco: **3,5 cm**
+- Media caña — marco perimetral: **6,25 cm** · calle: **4,5 cm** (desde 06/11/26)
 - Simple Placar — faja: **8 cm** final
 
 Todos los valores son editables en "Configuración avanzada" y se persisten en localStorage.
