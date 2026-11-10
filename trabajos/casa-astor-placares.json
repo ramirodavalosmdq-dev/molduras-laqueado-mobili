@@ -8,7 +8,7 @@
  "espBase": 15,
  "espFaja": 3,
  "canto": 0,
- "nota": "Puertas de placar y bauleras. Solo se fabrica la moldura y va a obra sin lijar ni pintar. Sin canto: corte = final + 2 × refilado. Base MDF 15 mm, recuadro MDF 3 mm de 8 cm final; verticales enteras y horizontales entre medio.",
+ "nota": "Puertas de placar y bauleras. Solo se fabrica la moldura y va a obra sin lijar ni pintar. Sin canto: corte = final + 2 × refilado. Base MDF 15 mm, recuadro MDF 3 mm de 8 cm final; verticales enteras y horizontales entre medio. 10/11/2026: se sumaron 8 frentes (N° 3 a 6).",
  "frentes": [
   {
    "nro": 1,
@@ -23,6 +23,34 @@
    "alto": 61.6,
    "ancho": 55.5,
    "cant": 8
+  },
+  {
+   "nro": 3,
+   "tipo": "Puerta",
+   "alto": 203.5,
+   "ancho": 66.5,
+   "cant": 2
+  },
+  {
+   "nro": 4,
+   "tipo": "Puerta",
+   "alto": 203.5,
+   "ancho": 66.6,
+   "cant": 2
+  },
+  {
+   "nro": 5,
+   "tipo": "Baulera",
+   "alto": 58.8,
+   "ancho": 66.5,
+   "cant": 2
+  },
+  {
+   "nro": 6,
+   "tipo": "Baulera",
+   "alto": 58.8,
+   "ancho": 66.6,
+   "cant": 2
   }
  ]
 }
