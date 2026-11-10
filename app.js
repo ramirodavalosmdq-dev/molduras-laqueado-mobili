@@ -683,7 +683,9 @@
   tr { break-inside:avoid; }
   th { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; text-align:left; padding:6px 6px 4px 10px; color:#333; }
   th.m { text-align:right; padding-right:30px; }
-  td { padding:var(--pad,2px) 6px; border-bottom:1px solid #EDEDED; }
+  td { padding:var(--pad,2px) 6px; border-bottom:1px solid #DADADA; }
+  tbody tr:nth-child(even) td { background:#ECECEC; }
+  * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   td.c { font-size:calc(14px * var(--k,1)); font-weight:700; padding-left:10px; width:60px; }
   th.n, td.n { width:92px; padding-left:10px; }
   td.n { font-size:calc(14px * var(--k,1)); font-weight:800; border-right:1px solid #DDD; }
@@ -1059,7 +1061,7 @@
   });
 
   // ============== MENÚ HAMBURGUESA + BIBLIOTECA DE TRABAJOS ==============
-  const APP_VERSION = 'v1.9';
+  const APP_VERSION = 'v2.0';
   const JOB_KEY = 'mobili-molduras-trabajo-activo-v1';
   const $drawer = $('drawer');
   const $drawerOverlay = $('drawer-overlay');
